@@ -34,9 +34,9 @@
    - Click "Run" and see the output in real-time.
 
 ## License
-This project is open-source and available under the MIT License.
+This project is open-source and available under the GPL3 License.
 
 ---
 
-_Developed with ❤️ by ILya Guyduck_
+_Developed with ❤️ by ILya Guyduk_
 
