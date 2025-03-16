@@ -192,7 +192,7 @@ class EndpointManager(BaseUI):
             save_btn.after(2000, lambda: save_btn.config(text="Сохранить"))
 
         button_container = self.buttons_frame(container)
-        save_btn = self.create_button(button_container, "Save", save_changes)
+        save_btn = self.create_button(button_container, "Save", save_endpoint)
         cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
         test_btn = self.create_button(button_container, "Test", self.test_connection)
     

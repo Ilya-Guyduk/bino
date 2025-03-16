@@ -18,7 +18,6 @@ class App:
         self.root = root
         self.root.title("B!NO")  # Заголовок окна
         self.root.geometry("800x600")  # Размер окна
-        #self.root.add_option
 
         # Настройка стиля интерфейса
         self.style = ttk.Style()
@@ -28,13 +27,9 @@ class App:
         self.style.configure("TButton", font=("Silkscreen", 9), background="#d3d3d3", foreground="black")  # Изменён фон на светло-серый
         self.style.map("TButton", background=[("active", "#a9a9a9")])  # Изменён цвет при наведении на кнопки на серый
 
-        # Конфигурация меток (TLabel)
-        self.style.configure("TLabel", font=("Silkscreen", 9), background="#f0f0f0", foreground="black")  # Лёгкий серый фон для меток
-
-        # Конфигурация вкладок в блокноте (TNotebook)
-        self.style.configure("TNotebook.Tab", background="#f0f0f0", foreground="black", font=("Silkscreen", 9))  # Белые вкладки с чёрным текстом
-        self.style.map("TNotebook.Tab", background=[("selected", "#c0c0c0"), ("active", "#d9d9d9")])  # Выделение вкладки в светло-серый цвет
-
+        self.style.configure("TNotebook", background="white")  # Фон за вкладками
+        self.style.configure("TNotebook.Tab", font=("Silkscreen", 9), padding=[5, 2], borderwidth=1)  
+        self.style.map("TNotebook.Tab", background=[("selected", "#c0c0c0"), ("active", "#d9d9d9")])
         # Загрузка данных
         self.data = load_data()
 
