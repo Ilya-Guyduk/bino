@@ -25,14 +25,14 @@ class App:
         self.style.theme_use("classic")  # Используем классическую тему
 
         # Конфигурация кнопок (TButton)
-        self.style.configure("TButton", font=("Silkscreen", 9), padding=4, background="#d3d3d3", foreground="black")  # Изменён фон на светло-серый
+        self.style.configure("TButton", font=("Silkscreen", 9), background="#d3d3d3", foreground="black")  # Изменён фон на светло-серый
         self.style.map("TButton", background=[("active", "#a9a9a9")])  # Изменён цвет при наведении на кнопки на серый
 
         # Конфигурация меток (TLabel)
         self.style.configure("TLabel", font=("Silkscreen", 9), background="#f0f0f0", foreground="black")  # Лёгкий серый фон для меток
 
         # Конфигурация вкладок в блокноте (TNotebook)
-        self.style.configure("TNotebook.Tab", background="#f0f0f0", foreground="black", padding=[5, 2], font=("Silkscreen", 8))  # Белые вкладки с чёрным текстом
+        self.style.configure("TNotebook.Tab", background="#f0f0f0", foreground="black", font=("Silkscreen", 9))  # Белые вкладки с чёрным текстом
         self.style.map("TNotebook.Tab", background=[("selected", "#c0c0c0"), ("active", "#d9d9d9")])  # Выделение вкладки в светло-серый цвет
 
         # Загрузка данных

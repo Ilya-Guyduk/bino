@@ -160,13 +160,6 @@ class EndpointManager(BaseUI):
 
         return name_entry, connection_var, ssh_frame, sql_frame, sqlite_frame, address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry
 
-    def create_custom_buttons(self, container):
-        buttons_data = [
-            ("Сохранить", self.save_data),
-            ("Отмена", self.clear_content_frame),
-            ("Тест", self.test_connection)
-        ]
-        self.create_buttons(container, buttons_data)
 
     def add_endpoint(self):
         self.clear_content_frame()
@@ -195,10 +188,13 @@ class EndpointManager(BaseUI):
             self.app.data["endpoints"].append(new_endpoint)
             self.listbox.insert(tk.END, name)
             save_data(self.app.data)
-            btn_save.config(text="Сохранено!")
-            btn_save.after(2000, lambda: btn_save.config(text="Сохранить"))
+            save_btn.config(text="Сохранено!")
+            save_btn.after(2000, lambda: save_btn.config(text="Сохранить"))
 
-        btn_save = self.create_custom_buttons(container, save_endpoint)
+        button_container = self.buttons_frame(container)
+        save_btn = self.create_button(button_container, "Save", save_changes)
+        cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
+        test_btn = self.create_button(button_container, "Test", self.test_connection)
     
     def display_endpoint(self, event):
         """ Отображает информацию о выбранном эндпоинте. """
@@ -230,12 +226,13 @@ class EndpointManager(BaseUI):
                 endpoint_data["password"] = password_entry.get()
 
             save_data(self.app.data)
-            btn_save.config(text="Сохранено!")
-            btn_save.after(2000, lambda: btn_save.config(text="Сохранить"))
+            save_btn.config(text="Saved")
+            save_btn.after(2000, lambda: save_btn.config(text="Save"))
 
-        # Рамка для кнопок (прижата к правому краю)
-        buttons_frame = tk.Frame(container)
-        buttons_frame.grid(row=0, column=1, sticky="ne")
+        button_container = self.buttons_frame(container)
+        save_btn = self.create_button(button_container, "Save", save_changes)
+        cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
+        test_btn = self.create_button(button_container, "Test", self.test_connection)
 
-        btn_save = self.create_custom_buttons(container, save_changes)
+
 

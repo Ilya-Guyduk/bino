@@ -23,15 +23,19 @@ class BaseUI:
         for widget in self.app.content_frame.winfo_children():
             widget.destroy()
 
-    def create_buttons(self, container, buttons_data):
+    def buttons_frame(self, container):
+        buttons_frame = tk.Frame(container)
+        buttons_frame.grid(row=0, column=1, sticky="ne")
+
+        return buttons_frame
+
+    def create_button(self, buttons_frame, user_text, user_command):
         """
         Создаёт кнопки на основе переданного списка.
         
         :param container: Родительский виджет для кнопок
         :param buttons_data: Список кортежей (Название, Функция)
         """
-        buttons_frame = tk.Frame(container)
-        buttons_frame.grid(row=0, column=1, sticky="ne")
 
         def on_enter(e):
             e.widget.config(bg="gray80")
@@ -39,31 +43,9 @@ class BaseUI:
         def on_leave(e):
             e.widget.config(bg="SystemButtonFace")
 
-        buttons = []
-        for text, command in buttons_data:
-            btn = tk.Button(buttons_frame, text=text, font=("Silkscreen", 9), command=command)
-            btn.pack(fill="x", pady=2)
-            btn.bind("<Enter>", on_enter)
-            btn.bind("<Leave>", on_leave)
-            buttons.append(btn)
+        btn = tk.Button(buttons_frame, text=user_text, font=("Silkscreen", 9), command=user_command)
+        btn.pack(fill="x", pady=2)
+        btn.bind("<Enter>", on_enter)
+        btn.bind("<Leave>", on_leave)
 
-        return buttons
-        """Создаёт кнопки на основе переданного списка buttons_info."""
-        buttons_frame = tk.Frame(container)
-        buttons_frame.grid(row=0, column=1, sticky="ne")
-
-        def on_enter(e):
-            e.widget.config(bg="gray80")
-
-        def on_leave(e):
-            e.widget.config(bg="SystemButtonFace")
-
-        buttons = []
-        for text, command in buttons_info:
-            btn = tk.Button(buttons_frame, text=text, font=("Silkscreen", 9), command=command)
-            btn.pack(fill="x", pady=2)
-            btn.bind("<Enter>", on_enter)
-            btn.bind("<Leave>", on_leave)
-            buttons.append(btn)
-
-        return buttons
+        return btn
