@@ -1,8 +1,11 @@
 import tkinter as tk
+from interpreters.python import PythonInterpreter
+from interpreters.bash import BashInterpreter
 
 class BaseUI:
     def __init__(self, app):
         self.app = app
+        
 
     def create_form_container(self):
         """Создаёт контейнер и рамку формы"""
@@ -44,7 +47,7 @@ class BaseUI:
             e.widget.config(bg="SystemButtonFace")
 
         btn = tk.Button(buttons_frame, text=user_text, font=("Silkscreen", 9), command=user_command)
-        btn.pack(fill="x", pady=2)
+        btn.pack(fill="x", pady=0)
         btn.bind("<Enter>", on_enter)
         btn.bind("<Leave>", on_leave)
 

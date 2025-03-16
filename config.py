@@ -1,0 +1,5 @@
+VERSION = "v1.0.0"
+
+FEATURE_FLAGS = {
+    "ENABLE_SQL_SUPPORT": False
+}

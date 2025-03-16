@@ -8,17 +8,24 @@ from pygments.lexers import PythonLexer, BashLexer
 from pygments.formatters import RawTokenFormatter
 from pygments.token import Token
 from base_ui import BaseUI
+from interpreters.python import PythonInterpreter
+from interpreters.bash import BashInterpreter
+
 import threading
 
 class ScriptManager(BaseUI):
     def __init__(self, app):
         self.app = app
+        self.interpreters = {
+            "python": PythonInterpreter(),
+            "bash": BashInterpreter()
+        }
         self.listbox = tk.Listbox(self.app.scripts_frame)
         self.listbox.pack(fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", self.display_script)
 
         # Кнопка Add
-        self.add_button = tk.Button(self.app.scripts_frame, text="Add",font=("Silkscreen", 9), command=self.add_script)
+        self.add_button = self.create_button(self.app.scripts_frame, "Add", self.add_script)
         self.add_button.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         self.load_existing_data()
@@ -28,14 +35,40 @@ class ScriptManager(BaseUI):
         for script in self.app.data["scripts"]:
             self.listbox.insert(tk.END, script)
 
+    def delete_script(self):
+        """Удаляет выбранный скрипт."""
+        selected = self.listbox.curselection()
+        if not selected:
+            messagebox.showwarning("Ошибка", "Пожалуйста, выберите скрипт для удаления.")
+            return
+
+        # Получаем имя скрипта, который нужно удалить
+        script_name = self.listbox.get(selected[0])
+
+        # Удаляем скрипт из данных
+        if script_name in self.app.data["scripts"]:
+            del self.app.data["scripts"][script_name]
+
+            # Удаляем скрипт из списка в UI
+            self.listbox.delete(selected[0])
+
+            # Сохраняем обновлённые данные
+            save_data(self.app.data)
+
+            # Очищаем поле с кодом и возвращаем в начальный экран
+            self.clear_content_frame()
+
+            messagebox.showinfo("Удалено", f"Скрипт '{script_name}' был успешно удалён.")
+        else:
+            messagebox.showwarning("Ошибка", f"Скрипт '{script_name}' не найден.")
+
     def run_script(self):
         """Запуск скрипта на удалённом сервере по SSH с потоковым выводом и статусом подключения."""
-        interpreter = self.interpreter_var.get()
+        interpreter_name = self.interpreter_var.get()
         script_code = self.script_text.get("1.0", tk.END).strip()
         endpoint_name = self.endpoint_var.get()
 
         endpoint_data = next((ep for ep in self.app.data["endpoints"] if ep["name"] == endpoint_name), None)
-
         if not endpoint_data:
             messagebox.showerror("Ошибка", f"Эндпоинт '{endpoint_name}' не найден.")
             return
@@ -86,7 +119,6 @@ class ScriptManager(BaseUI):
             try:
                 ssh_client = paramiko.SSHClient()
                 ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
                 ssh_client.connect(hostname, port=port, username=username, password=password)
 
                 # Меняем статус на "Подключено" и ставим галочку
@@ -94,12 +126,15 @@ class ScriptManager(BaseUI):
                 self.app.root.after(0, lambda: status_icon.delete("all"))
                 self.app.root.after(0, lambda: status_icon.create_text(10, 10, text="✔", font=("Arial", 14), fill="green"))
 
-                command = f"python -c '{script_code}'" if interpreter == "python" else f"bash -c '{script_code}'"
-                stdin, stdout, stderr = ssh_client.exec_command(command)
+                if interpreter_name in self.interpreters:
+                    interpreter = self.interpreters[interpreter_name]
+                    command = interpreter.format_command(script_code)
+                else:
+                    command = script_code
 
+                stdin, stdout, stderr = ssh_client.exec_command(command)
                 for line in iter(stdout.readline, ""):
                     self.app.root.after(0, update_output, line)
-
                 for line in iter(stderr.readline, ""):
                     self.app.root.after(0, update_output, f"[Ошибка] {line}")
 
@@ -110,9 +145,8 @@ class ScriptManager(BaseUI):
 
         # Запускаем индикатор загрузки
         animate_spinner()
-
-        # Запуск в отдельном потоке
         threading.Thread(target=execute_script, daemon=True).start()
+    
     def add_syntax_highlighting(self, text_widget, code, language):
         """
         Добавляет подсветку синтаксиса в виджет Text с использованием тегов.
@@ -171,17 +205,17 @@ class ScriptManager(BaseUI):
 
     def create_script_fields(self, frame, name="", interpreter="python", endpoint=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
-        tk.Label(frame, text="Name:", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         self.name_entry = tk.Entry(frame, width=32, bd=2)
         self.name_entry.insert(0, name)
         self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
 
-        tk.Label(frame, text="Interpreter:", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Interpreter", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         self.interpreter_var = tk.StringVar(value=interpreter)
         interpreter_dropdown = ttk.Combobox(frame, textvariable=self.interpreter_var, values=["python", "bash"], width=30)
         interpreter_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
-        tk.Label(frame, text="Endpoint:", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Endpoint", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         endpoint_names = [endpoint["name"] for endpoint in self.app.data["endpoints"]]
         self.endpoint_var = tk.StringVar(value=endpoint)
         endpoint_dropdown = ttk.Combobox(frame, textvariable=self.endpoint_var, values=endpoint_names, width=30)
@@ -213,13 +247,15 @@ class ScriptManager(BaseUI):
                 }
                 self.listbox.insert(tk.END, name)
                 save_data(self.app.data)
-                btn_save.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                btn_save.after(2000, lambda: btn_save.config(text="Save"))
+                save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
+                delete_btn = self.create_button(button_container, "Delete", self.delete_script)
+                save_btn.after(2000, lambda: save_btn.config(text="Save"))
 
         button_container = self.buttons_frame(container)
         save_btn = self.create_button(button_container, "Save", save_script)
         cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
         start_btn = self.create_button(button_container, "Start", self.run_script)
+        opt_btn = self.create_button(button_container, "Options", self.clear_content_frame)
         self.create_code_field()
 
 
@@ -248,6 +284,8 @@ class ScriptManager(BaseUI):
             save_btn = self.create_button(button_container, "Save", save_script)
             cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
             start_btn = self.create_button(button_container, "Start", self.run_script)
+            opt_btn = self.create_button(button_container, "Options", self.clear_content_frame)
+            delete_btn = self.create_button(button_container, "Delete", self.delete_script)
 
             self.create_code_field(script_data["code"])
             self.add_syntax_highlighting(self.script_text, script_data["code"], script_data["interpreter"])

@@ -6,7 +6,10 @@ import requests
 import threading
 import tkinter.messagebox as messagebox
 from base_ui import BaseUI
+from interpreters.python import PythonInterpreter
+from interpreters.bash import BashInterpreter
 
+from config import FEATURE_FLAGS
 
 class EndpointManager(BaseUI):
     def __init__(self, app):
@@ -14,8 +17,12 @@ class EndpointManager(BaseUI):
         self.listbox = tk.Listbox(self.app.endpoints_frame)
         self.listbox.pack(fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", self.display_endpoint)
-        
-        self.add_button = tk.Button(self.app.endpoints_frame, text="Add", font=("Silkscreen", 9), command=self.add_endpoint)
+        self.interpreters = {
+            "python": PythonInterpreter(),
+            "bash": BashInterpreter()
+        }
+
+        self.add_button = self.create_button(self.app.endpoints_frame, "Add", self.add_endpoint)
         self.add_button.pack(fill=tk.X)
         
         self.load_existing_data()
@@ -23,6 +30,7 @@ class EndpointManager(BaseUI):
     def test_connection(self, endpoint):
         """Проверка соединения с эндпоинтом в отдельном потоке."""
         def check():
+
             result = False
             if endpoint.startswith("http"):
                 try:
@@ -47,6 +55,33 @@ class EndpointManager(BaseUI):
         # Запускаем проверку в отдельном потоке
         threading.Thread(target=check, daemon=True).start()
 
+    def delete_endpoint(self):
+        """Удаляет выбранный эндпоинт."""
+        selected = self.listbox.curselection()
+        if not selected:
+            messagebox.showwarning("Предупреждение", "Не выбран эндпоинт для удаления!")
+            return
+
+        # Получаем имя выбранного эндпоинта
+        name = self.listbox.get(selected[0])
+
+        # Запрашиваем подтверждение удаления
+        confirmation = messagebox.askyesno("Подтверждение удаления", f"Вы уверены, что хотите удалить эндпоинт '{name}'?")
+
+        if confirmation:
+            # Удаляем эндпоинт из данных
+            self.app.data["endpoints"] = [ep for ep in self.app.data["endpoints"] if ep["name"] != name]
+            
+            # Обновляем список в интерфейсе
+            self.listbox.delete(selected[0])
+
+            # Сохраняем обновлённые данные
+            save_data(self.app.data)
+
+            self.clear_content_frame()
+            # Показываем уведомление об успешном удалении
+            messagebox.showinfo("Удаление", f"Эндпоинт '{name}' успешно удалён.")
+  
     def load_existing_data(self):
         """ Загружает эндпоинты в listbox, приводя старые строки к новому формату. """
         updated_endpoints = []
@@ -64,37 +99,41 @@ class EndpointManager(BaseUI):
     
     def create_endpoint_fields(self, frame, name="", conn_type="ssh", endpoint_data=None):
         """Добавляет поля формы (Name, Type, Connection Details)"""
-        tk.Label(frame, text="Name:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         name_entry = tk.Entry(frame, width=32, bd=2)
         name_entry.insert(0, name)
         name_entry.pack(anchor="w", padx=5, pady=(0, 0))
 
-        tk.Label(frame, text="Type:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Type", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        connection_types = ["ssh"]
+        if FEATURE_FLAGS.get("ENABLE_SQL_SUPPORT", False):
+            connection_types.extend(["sql/postgres", "sql/sqlite"])
         connection_var = tk.StringVar(value=conn_type)
-        connection_dropdown = ttk.Combobox(frame, textvariable=connection_var, values=["ssh", "sql/postgres", "sql/sqlite"], width=30)
+        connection_dropdown = ttk.Combobox(frame, textvariable=connection_var, values=connection_types, width=30)
         connection_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
         # Фрейм для SSH
-        ssh_frame = tk.Frame(frame, bg="#C0C0C0")
+        ssh_frame = tk.Frame(frame, borderwidth=2, bg="#C0C0C0")
+        ssh_frame.pack(padx=(0, 0), pady=(3, 0))
 
-        tk.Label(ssh_frame, text="IP:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        address_entry = tk.Entry(ssh_frame)
-        address_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
+        tk.Label(ssh_frame, text="IP", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
+        address_entry = tk.Entry(ssh_frame, width=32, bd=2)
+        address_entry.pack(anchor="w", padx=0, pady=(0, 0))
 
-        tk.Label(ssh_frame, text="Port:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        port_entry = tk.Entry(ssh_frame)
-        port_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
+        tk.Label(ssh_frame, text="Port", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
+        port_entry = tk.Entry(ssh_frame, width=32, bd=2)
+        port_entry.pack(anchor="w", padx=0, pady=(0, 0))
 
-        tk.Label(ssh_frame, text="Login:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        login_entry = tk.Entry(ssh_frame)
-        login_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
+        tk.Label(ssh_frame, text="Login", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
+        login_entry = tk.Entry(ssh_frame, width=32, bd=2)
+        login_entry.pack(anchor="w", padx=0, pady=(0, 0))
 
-        tk.Label(ssh_frame, text="Password:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        password_entry = tk.Entry(ssh_frame, show="*")
-        password_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
+        tk.Label(ssh_frame, text="Password", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
+        password_entry = tk.Entry(ssh_frame, show="*", width=32, bd=2)
+        password_entry.pack(anchor="w", padx=0, pady=(0, 0))
 
         # Фрейм для SQL (PostgreSQL и SQLite)
-        sql_frame = tk.Frame(frame, bg="#C0C0C0")
+        sql_frame = tk.Frame(frame, borderwidth=2, bg="#C0C0C0")
 
         tk.Label(sql_frame, text="Host:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         sql_host_entry = tk.Entry(sql_frame)
@@ -108,18 +147,18 @@ class EndpointManager(BaseUI):
         sql_db_entry = tk.Entry(sql_frame)
         sql_db_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
 
-        tk.Label(sql_frame, text="User:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(sql_frame, text="User", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         sql_user_entry = tk.Entry(sql_frame)
         sql_user_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
 
-        tk.Label(sql_frame, text="Password:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(sql_frame, text="Password", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         sql_password_entry = tk.Entry(sql_frame, show="*")
         sql_password_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
 
         # Поле для SQLite (путь к файлу базы данных)
-        sqlite_frame = tk.Frame(frame, bg="#C0C0C0")
+        sqlite_frame = tk.Frame(frame, borderwidth=2, bg="#C0C0C0")
 
-        tk.Label(sqlite_frame, text="DB File Path:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(sqlite_frame, text="DB File Path", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         sqlite_file_entry = tk.Entry(sqlite_frame)
         sqlite_file_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
 
@@ -160,7 +199,6 @@ class EndpointManager(BaseUI):
 
         return name_entry, connection_var, ssh_frame, sql_frame, sqlite_frame, address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry
 
-
     def add_endpoint(self):
         self.clear_content_frame()
         container, frame = self.create_form_container()
@@ -188,13 +226,14 @@ class EndpointManager(BaseUI):
             self.app.data["endpoints"].append(new_endpoint)
             self.listbox.insert(tk.END, name)
             save_data(self.app.data)
-            save_btn.config(text="Сохранено!")
-            save_btn.after(2000, lambda: save_btn.config(text="Сохранить"))
+            save_btn.config(text="Saved")
+            save_btn.after(2000, lambda: save_btn.config(text="Save"))
 
         button_container = self.buttons_frame(container)
         save_btn = self.create_button(button_container, "Save", save_endpoint)
         cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
         test_btn = self.create_button(button_container, "Test", self.test_connection)
+        opt_btn = self.create_button(button_container, "Options", self.test_connection)
     
     def display_endpoint(self, event):
         """ Отображает информацию о выбранном эндпоинте. """
@@ -233,6 +272,8 @@ class EndpointManager(BaseUI):
         save_btn = self.create_button(button_container, "Save", save_changes)
         cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
         test_btn = self.create_button(button_container, "Test", self.test_connection)
+        opt_btn = self.create_button(button_container, "Options", self.test_connection)
+        delete_btn = self.create_button(button_container, "Delete", self.delete_endpoint)
 
 
 
