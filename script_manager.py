@@ -20,16 +20,8 @@ class ScriptManager(BaseUI):
             "python": PythonInterpreter(),
             "bash": BashInterpreter()
         }
-        self.listbox = tk.Listbox(self.app.scripts_frame)
-        self.listbox.pack(fill=tk.BOTH, expand=True)
-        self.listbox.bind("<<ListboxSelect>>", self.display_script)
-
-        # Кнопка Add
-        self.add_button = self.create_button(self.app.scripts_frame, "Add", self.add_script)
-        self.add_button.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        
+        self.setup_listbox(self.app.scripts_frame, self.display_script, self.add_script)
         self.load_existing_data()
-    
     
     def load_existing_data(self):
         for script in self.app.data["scripts"]:

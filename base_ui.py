@@ -5,6 +5,13 @@ from interpreters.bash import BashInterpreter
 class BaseUI:
     def __init__(self, app):
         self.app = app
+
+    def setup_listbox(self, container, bind_command, add_button_command):
+        self.listbox = tk.Listbox(container)
+        self.listbox.pack(fill=tk.BOTH, expand=True)
+        self.listbox.bind("<<ListboxSelect>>", bind_command)
+        self.add_button = self.create_button(container, "Add", add_button_command)
+        self.add_button.pack(fill=tk.X)
         
 
     def create_form_container(self):

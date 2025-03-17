@@ -6,43 +6,61 @@ import requests
 import threading
 import tkinter.messagebox as messagebox
 from base_ui import BaseUI
-from interpreters.python import PythonInterpreter
-from interpreters.bash import BashInterpreter
+
+from connectors.ssh import SshConnector
+from connectors.PostgreSQL import PostgresConnector
 
 from config import FEATURE_FLAGS
 
 class EndpointManager(BaseUI):
     def __init__(self, app):
+        super().__init__(app)
         self.app = app
-        self.listbox = tk.Listbox(self.app.endpoints_frame)
-        self.listbox.pack(fill=tk.BOTH, expand=True)
-        self.listbox.bind("<<ListboxSelect>>", self.display_endpoint)
-        self.interpreters = {
-            "python": PythonInterpreter(),
-            "bash": BashInterpreter()
+        self.connectors = {
+            "ssh": SshConnector(),
+            "PostgreSQL": PostgresConnector()
+        }
+        self.options = {
+            "Enable Logging": tk.BooleanVar(),
+            "Auto-Reconnect": tk.BooleanVar(),
+            "Use Compression": tk.BooleanVar()
         }
 
-        self.add_button = self.create_button(self.app.endpoints_frame, "Add", self.add_endpoint)
-        self.add_button.pack(fill=tk.X)
-        
+        self.setup_listbox(self.app.endpoints_frame, self.display_endpoint, self.add_endpoint)
         self.load_existing_data()
 
-    def test_connection(self, endpoint):
+    def open_options_window(self, endpoint_name):
+        """Открывает окно для выбора опций эндпоинта."""
+        options_window = tk.Toplevel(self.app.root)
+        options_window.title(f"Options for {endpoint_name}")
+        options_window.geometry("300x200")
+
+        for option, var in self.options.items():
+            ttk.Checkbutton(options_window, text=option, variable=var).pack(anchor="w", padx=10, pady=5)
+        
+        def save_options():
+            selected_options = {opt: var.get() for opt, var in self.options.items()}
+            self.app.data.setdefault("options", {})[endpoint_name] = selected_options
+            save_data(self.app.data)
+            options_window.destroy()
+        
+        save_btn = ttk.Button(options_window, text="Save", command=save_options)
+        save_btn.pack(pady=10)
+
+    def test_connection(self):
         """Проверка соединения с эндпоинтом в отдельном потоке."""
+        selected = self.listbox.curselection()
+        if not selected:
+            return
+
         def check():
 
             result = False
-            if endpoint.startswith("http"):
-                try:
-                    response = requests.get(endpoint, timeout=5)
-                    result = response.status_code == 200
-                except requests.RequestException:
-                    result = False
-            elif "ssh" in endpoint:
+            if "ssh" in self.listbox.get(selected[1]):
                 try:
                     client = paramiko.SSHClient()
                     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    client.connect(endpoint, timeout=5)
+                    client.connect(selected, timeout=5)
                     client.close()
                     result = True
                 except Exception:
@@ -107,53 +125,23 @@ class EndpointManager(BaseUI):
         tk.Label(frame, text="Type", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         connection_types = ["ssh"]
         if FEATURE_FLAGS.get("ENABLE_SQL_SUPPORT", False):
-            connection_types.extend(["sql/postgres", "sql/sqlite"])
+            connection_types.extend(["PostgreSQL", "SQLite"])
         connection_var = tk.StringVar(value=conn_type)
         connection_dropdown = ttk.Combobox(frame, textvariable=connection_var, values=connection_types, width=30)
         connection_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
         # Фрейм для SSH
         ssh_frame = tk.Frame(frame, borderwidth=2, bg="#C0C0C0")
-        ssh_frame.pack(padx=(0, 0), pady=(3, 0))
+        ssh_frame.pack(padx=(0, 0), pady=(0, 0))
 
-        tk.Label(ssh_frame, text="IP", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        address_entry = tk.Entry(ssh_frame, width=32, bd=2)
-        address_entry.pack(anchor="w", padx=0, pady=(0, 0))
+        ssh_connector = self.connectors["ssh"]
+        address_entry, port_entry, login_entry, password_entry = ssh_connector.endpoint_fields(ssh_frame)
 
-        tk.Label(ssh_frame, text="Port", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        port_entry = tk.Entry(ssh_frame, width=32, bd=2)
-        port_entry.pack(anchor="w", padx=0, pady=(0, 0))
-
-        tk.Label(ssh_frame, text="Login", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        login_entry = tk.Entry(ssh_frame, width=32, bd=2)
-        login_entry.pack(anchor="w", padx=0, pady=(0, 0))
-
-        tk.Label(ssh_frame, text="Password", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        password_entry = tk.Entry(ssh_frame, show="*", width=32, bd=2)
-        password_entry.pack(anchor="w", padx=0, pady=(0, 0))
-
-        # Фрейм для SQL (PostgreSQL и SQLite)
+        # Фрейм для SQL (PostgreSQL)
         sql_frame = tk.Frame(frame, borderwidth=2, bg="#C0C0C0")
 
-        tk.Label(sql_frame, text="Host:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_host_entry = tk.Entry(sql_frame)
-        sql_host_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(sql_frame, text="Port:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_port_entry = tk.Entry(sql_frame)
-        sql_port_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(sql_frame, text="Database:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_db_entry = tk.Entry(sql_frame)
-        sql_db_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(sql_frame, text="User", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_user_entry = tk.Entry(sql_frame)
-        sql_user_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(sql_frame, text="Password", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_password_entry = tk.Entry(sql_frame, show="*")
-        sql_password_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
+        postgres_connector = self.connectors["PostgreSQL"]
+        sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry = postgres_connector.endpoint_fields(sql_frame)
 
         # Поле для SQLite (путь к файлу базы данных)
         sqlite_frame = tk.Frame(frame, borderwidth=2, bg="#C0C0C0")
@@ -170,9 +158,9 @@ class EndpointManager(BaseUI):
 
             if connection_var.get() == "ssh":
                 ssh_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
-            elif connection_var.get() == "sql/postgres":
+            elif connection_var.get() == "PostgreSQL":
                 sql_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
-            elif connection_var.get() == "sql/sqlite":
+            elif connection_var.get() == "SQLite":
                 sqlite_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
 
         # Подключаем обработчик изменения типа соединения
@@ -233,7 +221,7 @@ class EndpointManager(BaseUI):
         save_btn = self.create_button(button_container, "Save", save_endpoint)
         cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
         test_btn = self.create_button(button_container, "Test", self.test_connection)
-        opt_btn = self.create_button(button_container, "Options", self.test_connection)
+        opt_btn = self.create_button(button_container, "Options", lambda: self.open_options_window(name))
     
     def display_endpoint(self, event):
         """ Отображает информацию о выбранном эндпоинте. """
@@ -272,7 +260,7 @@ class EndpointManager(BaseUI):
         save_btn = self.create_button(button_container, "Save", save_changes)
         cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
         test_btn = self.create_button(button_container, "Test", self.test_connection)
-        opt_btn = self.create_button(button_container, "Options", self.test_connection)
+        opt_btn = self.create_button(button_container, "Options", lambda: self.open_options_window(name))
         delete_btn = self.create_button(button_container, "Delete", self.delete_endpoint)
 
 
