@@ -44,7 +44,13 @@ jobs:
             $TAG_NAME = "v0.1.0"
           }
           Write-Host "New tag: $TAG_NAME"
-          git tag $TAG_NAME
+          # Проверяем, существует ли тег
+          $TAG_EXISTS = git tag -l $TAG_NAME
+          if ($TAG_EXISTS) {
+            Write-Host "Tag $TAG_NAME already exists. Skipping creation."
+          } else {
+            git tag $TAG_NAME
+          }
           git push https://github.com/${{ github.repository }} $TAG_NAME  # Используем GITHUB_TOKEN
 
       - name: Build the executable
