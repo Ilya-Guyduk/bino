@@ -47,7 +47,7 @@ jobs:
           pyinstaller --onefile main.py  # Указываем основной файл для сборки в exe
 
       - name: Upload the .exe file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: binary
           path: dist/main.exe  # Путь к скомпилированному .exe файлу
