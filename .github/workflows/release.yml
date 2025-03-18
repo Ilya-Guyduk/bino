@@ -31,14 +31,15 @@ jobs:
 
       - name: Create tag
         id: tag
+        shell: pwsh  # Указываем использование PowerShell
         run: |
           # Убедимся, что тег правильно задан
-          TAG_NAME=$(git describe --tags --abbrev=0)
-          if [[ -z "$TAG_NAME" ]]; then
-            echo "No tags found, creating v0.1.0"
-            TAG_NAME="v0.1.0"
-          fi
-          echo "New tag: $TAG_NAME"
+          $TAG_NAME = git describe --tags --abbrev=0
+          if (-not $TAG_NAME) {
+            Write-Host "No tags found, creating v0.1.0"
+            $TAG_NAME = "v0.1.0"
+          }
+          Write-Host "New tag: $TAG_NAME"
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
