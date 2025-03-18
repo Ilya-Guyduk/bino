@@ -1,6 +1,17 @@
+"""
+UI module for the B!NO application.
+
+This module defines the `App` class, which initializes the main application window
+using Tkinter. It manages the user interface layout, styling, and interactions.
+
+Features:
+- Sidebar with script and endpoint management tabs.
+- Footer with copyright information and a GitHub link.
+- Uses ttk styling for better appearance.
+"""
+
 import tkinter as tk
 from tkinter import ttk
-from tkinter import font 
 import webbrowser
 
 from storage import load_data
@@ -8,20 +19,25 @@ from script_manager import ScriptManager
 from endpoint_manager import EndpointManager
 from config import VERSION
 
+
 class App:
+    """
+    Main application class that initializes and manages the UI components.
+    """
+
     def __init__(self, root: tk.Tk):
         """
         Initialize the main application window and its components.
-        
+
         :param root: The root Tkinter window.
         """
-        self.BINO_LOGO = f"""
-         _   _         
-        | |_| |___ ___ 
-        | . |_|   | . |
-        |___|_|_|_|___|
-        /////{VERSION}////
-        """
+        self.bino_logo = (
+            " _   _         \n"
+            "| |_| |___ ___ \n"
+            "| . |_|   | . |\n"
+            "|___|_|_|_|___|\n"
+            f"/////{VERSION}////"
+        )
 
         # Configure the main application window
         self.root = root
@@ -33,12 +49,12 @@ class App:
         self.style.theme_use("classic")  # Use a classic theme for better compatibility
 
         # Configure button styles (TButton)
-        self.style.configure("TButton", font=("Silkscreen", 9), background="#d3d3d3", foreground="black")  
+        self.style.configure("TButton", font=("Silkscreen", 9), background="#d3d3d3", foreground="black")
         self.style.map("TButton", background=[("active", "#a9a9a9")])  # Change background color on hover
 
         # Configure notebook (tab container) styles
         self.style.configure("TNotebook", background="white")  # Background behind tabs
-        self.style.configure("TNotebook.Tab", font=("Silkscreen", 9), padding=[5, 2], borderwidth=1)  
+        self.style.configure("TNotebook.Tab", font=("Silkscreen", 9), padding=[5, 2], borderwidth=1)
         self.style.map("TNotebook.Tab", background=[("selected", "#c0c0c0"), ("active", "#d9d9d9")])
 
         # Load saved data (scripts, endpoints, etc.)
@@ -65,32 +81,49 @@ class App:
         self.endpoints_frame = tk.Frame(self.notebook)
 
         # Add tabs to the notebook
-        self.notebook.add(self.scripts_frame, text="Scripts")  
-        self.notebook.add(self.endpoints_frame, text="Endpoints")  
+        self.notebook.add(self.scripts_frame, text="Scripts")
+        self.notebook.add(self.endpoints_frame, text="Endpoints")
 
         # Managers for handling scripts and endpoints
-        self.scripts_manager = ScriptManager(self)  
-        self.endpoints_manager = EndpointManager(self)  
+        self.scripts_manager = ScriptManager(self)
+        self.endpoints_manager = EndpointManager(self)
 
         # Footer section (bottom of the window)
         self.footer_frame = tk.Frame(root, height=30, bg="#c0c0c0")
-        self.footer_frame.pack(side=tk.BOTTOM, fill=tk.X)  
+        self.footer_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Footer content (left: copyright, right: GitHub link)
         self.footer_content = tk.Frame(self.footer_frame, bg="#c0c0c0")
-        self.footer_content.pack(fill=tk.X, padx=10)  
+        self.footer_content.pack(fill=tk.X, padx=10)
 
         # Copyright label on the left
-        self.footer_label = tk.Label(self.footer_content, text=f"© 2025 B!NO - All rights reserved", font=("Silkscreen", 8), bg="#c0c0c0")
+        self.footer_label = tk.Label(
+            self.footer_content,
+            text="© 2025 B!NO - All rights reserved",
+            font=("Silkscreen", 8),
+            bg="#c0c0c0",
+        )
         self.footer_label.pack(side=tk.LEFT)
 
         # Clickable GitHub link on the right
-        self.github_label = tk.Label(self.footer_content, text="GitHub", font=("Silkscreen", 8), fg="blue", bg="#c0c0c0", cursor="hand2")
+        self.github_label = tk.Label(
+            self.footer_content,
+            text="GitHub",
+            font=("Silkscreen", 8),
+            fg="blue",
+            bg="#c0c0c0",
+            cursor="hand2",
+        )
         self.github_label.pack(side=tk.RIGHT)
 
         # Bind click event to open GitHub repository
         self.github_label.bind("<Button-1>", self.open_github)
 
-    def open_github(self, event):
-        """Open the GitHub repository link in the default web browser."""
+    @staticmethod
+    def open_github(_event):
+        """
+        Open the GitHub repository link in the default web browser.
+
+        :param _event: Unused event parameter from Tkinter.
+        """
         webbrowser.open("https://github.com/Ilya-Guyduk/bino")

@@ -24,7 +24,7 @@ class BaseUI:
         frame = tk.Frame(container, relief="groove", borderwidth=2, bg="#C0C0C0")
         frame.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
-        logo_label = tk.Label(frame, text=self.app.BINO_LOGO, font=("Courier", 10, "bold"), bg="#C0C0C0", anchor="e")
+        logo_label = tk.Label(frame, text=self.app.bino_logo, font=("Courier", 10, "bold"), bg="#C0C0C0", anchor="e")
         logo_label.pack(side=tk.RIGHT, anchor="ne", padx=5)
 
         return container, frame
