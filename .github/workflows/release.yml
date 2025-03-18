@@ -11,6 +11,9 @@ on:
       - main  # Запускается при мердж-реквестах в основную ветку
   workflow_dispatch:  # Запуск вручную
 
+permissions:
+  contents: write  # Требуется право на запись в репозиторий
+
 jobs:
   build:
     runs-on: windows-latest  # Используем Windows-агент для создания .exe
@@ -41,14 +44,14 @@ jobs:
           }
           Write-Host "New tag: $TAG_NAME"
           git tag $TAG_NAME
-          git push origin $TAG_NAME
+          git push https://github.com/${{ github.repository }} $TAG_NAME  # Используем GITHUB_TOKEN
 
       - name: Build the executable
         run: |
           pyinstaller --onefile main.py  # Указываем основной файл для сборки в exe
 
       - name: Upload the .exe file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3  # Используем последнюю версию v3
         with:
           name: binary
           path: dist/main.exe  # Путь к скомпилированному .exe файлу
