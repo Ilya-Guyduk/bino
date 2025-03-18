@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import font as tkFont
+from tkinter import font 
 import webbrowser
 
 from storage import load_data
@@ -9,7 +9,12 @@ from endpoint_manager import EndpointManager
 from config import VERSION
 
 class App:
-    def __init__(self, root):
+    def __init__(self, root: tk.Tk):
+        """
+        Initialize the main application window and its components.
+        
+        :param root: The root Tkinter window.
+        """
         self.BINO_LOGO = f"""
          _   _         
         | |_| |___ ___ 
@@ -17,73 +22,75 @@ class App:
         |___|_|_|_|___|
         /////{VERSION}////
         """
-        # Устанавливаем окно приложения
+
+        # Configure the main application window
         self.root = root
-        self.root.title("B!NO")  # Заголовок окна
-        self.root.geometry("800x600")  # Размер окна
+        self.root.title("B!NO")  # Set window title
+        self.root.geometry("800x600")  # Set default window size
 
-        # Настройка стиля интерфейса
+        # Setup UI styling
         self.style = ttk.Style()
-        self.style.theme_use("classic")  # Используем классическую тему
+        self.style.theme_use("classic")  # Use a classic theme for better compatibility
 
-        # Конфигурация кнопок (TButton)
-        self.style.configure("TButton", font=("Silkscreen", 9), background="#d3d3d3", foreground="black")  # Изменён фон на светло-серый
-        self.style.map("TButton", background=[("active", "#a9a9a9")])  # Изменён цвет при наведении на кнопки на серый
+        # Configure button styles (TButton)
+        self.style.configure("TButton", font=("Silkscreen", 9), background="#d3d3d3", foreground="black")  
+        self.style.map("TButton", background=[("active", "#a9a9a9")])  # Change background color on hover
 
-        self.style.configure("TNotebook", background="white")  # Фон за вкладками
+        # Configure notebook (tab container) styles
+        self.style.configure("TNotebook", background="white")  # Background behind tabs
         self.style.configure("TNotebook.Tab", font=("Silkscreen", 9), padding=[5, 2], borderwidth=1)  
         self.style.map("TNotebook.Tab", background=[("selected", "#c0c0c0"), ("active", "#d9d9d9")])
 
-        # Загрузка данных
+        # Load saved data (scripts, endpoints, etc.)
         self.data = load_data()
 
-        # Основной фрейм для всех виджетов
+        # Create the main layout frames
         self.main_frame = tk.Frame(root)
         self.main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # Фрейм для сайдбара (левой панели)
+        # Sidebar (left panel) for navigation
         self.sidebar_frame = tk.Frame(self.main_frame, width=200)
-        self.sidebar_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(4, 0), pady=(0, 0))  # Расположение на левой стороне окна
+        self.sidebar_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(4, 0))
 
-        # Фрейм для основного контента (правой панели)
+        # Main content area (right panel)
         self.content_frame = tk.Frame(self.main_frame)
-        self.content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)  # Контент занимает всю оставшуюся часть окна
+        self.content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Блокнот для вкладок "Scripts" и "Endpoints"
+        # Notebook widget for "Scripts" and "Endpoints" tabs
         self.notebook = ttk.Notebook(self.sidebar_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True, pady=(0, 7))  # Блокнот растягивается по ширине и высоте
+        self.notebook.pack(fill=tk.BOTH, expand=True, pady=(0, 7))
 
-        # Создание вкладок
+        # Create individual tab frames
         self.scripts_frame = tk.Frame(self.notebook)
         self.endpoints_frame = tk.Frame(self.notebook)
 
-        # Добавление вкладок в блокнот
-        self.notebook.add(self.scripts_frame, text="Scripts")  # Вкладка для скриптов
-        self.notebook.add(self.endpoints_frame, text="Endpoints")  # Вкладка для эндпоинтов
+        # Add tabs to the notebook
+        self.notebook.add(self.scripts_frame, text="Scripts")  
+        self.notebook.add(self.endpoints_frame, text="Endpoints")  
 
-        # Менеджеры для скриптов и эндпоинтов
-        self.scripts_manager = ScriptManager(self)  # Менеджер скриптов
-        self.endpoints_manager = EndpointManager(self)  # Менеджер эндпоинтов
+        # Managers for handling scripts and endpoints
+        self.scripts_manager = ScriptManager(self)  
+        self.endpoints_manager = EndpointManager(self)  
 
-        # Создание футера
+        # Footer section (bottom of the window)
         self.footer_frame = tk.Frame(root, height=30, bg="#c0c0c0")
-        self.footer_frame.pack(side=tk.BOTTOM, fill=tk.X)  # Размещаем футер внизу
+        self.footer_frame.pack(side=tk.BOTTOM, fill=tk.X)  
 
-        # Фрейм для содержимого футера (слева копирайт, справа ссылка)
+        # Footer content (left: copyright, right: GitHub link)
         self.footer_content = tk.Frame(self.footer_frame, bg="#c0c0c0")
-        self.footer_content.pack(fill=tk.X, padx=10)  # Добавляем отступы по бокам
+        self.footer_content.pack(fill=tk.X, padx=10)  
 
-        # Лейбл с копирайтом слева
+        # Copyright label on the left
         self.footer_label = tk.Label(self.footer_content, text=f"© 2025 B!NO - All rights reserved", font=("Silkscreen", 8), bg="#c0c0c0")
         self.footer_label.pack(side=tk.LEFT)
 
-        # Лейбл с кликабельной ссылкой на GitHub
+        # Clickable GitHub link on the right
         self.github_label = tk.Label(self.footer_content, text="GitHub", font=("Silkscreen", 8), fg="blue", bg="#c0c0c0", cursor="hand2")
         self.github_label.pack(side=tk.RIGHT)
 
-        # Обработчик клика на ссылку
+        # Bind click event to open GitHub repository
         self.github_label.bind("<Button-1>", self.open_github)
 
-    # Функция для открытия GitHub
     def open_github(self, event):
+        """Open the GitHub repository link in the default web browser."""
         webbrowser.open("https://github.com/Ilya-Guyduk/bino")

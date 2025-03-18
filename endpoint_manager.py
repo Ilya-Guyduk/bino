@@ -31,16 +31,22 @@ class EndpointManager(BaseUI):
 
     def open_options_window(self, endpoint_name):
         """Открывает окно для выбора опций эндпоинта."""
+        if endpoint_name not in self.app.data["endpoints"]:
+            return
+        
         options_window = tk.Toplevel(self.app.root)
         options_window.title(f"Options for {endpoint_name}")
         options_window.geometry("300x200")
-
-        for option, var in self.options.items():
+        
+        endpoint_options = self.app.data["endpoints"].setdefault(endpoint_name, {}).setdefault("options", {})
+        options_vars = {opt: tk.BooleanVar(value=endpoint_options.get(opt, False)) for opt in ["Enable Logging", "Auto-Reconnect", "Use Compression"]}
+        
+        for option, var in options_vars.items():
             ttk.Checkbutton(options_window, text=option, variable=var).pack(anchor="w", padx=10, pady=5)
         
         def save_options():
-            selected_options = {opt: var.get() for opt, var in self.options.items()}
-            self.app.data.setdefault("options", {})[endpoint_name] = selected_options
+            for opt, var in options_vars.items():
+                endpoint_options[opt] = var.get()
             save_data(self.app.data)
             options_window.destroy()
         
@@ -48,86 +54,125 @@ class EndpointManager(BaseUI):
         save_btn.pack(pady=10)
 
     def test_connection(self):
-        """Проверка соединения с эндпоинтом в отдельном потоке."""
+        """Проверка соединения с эндпоинтом с потоковым выводом статуса."""
         selected = self.listbox.curselection()
         if not selected:
+            messagebox.showwarning("Ошибка", "Выберите эндпоинт для тестирования.")
             return
 
-        def check():
+        endpoint_name = self.listbox.get(selected[0])
+        endpoint_data = self.app.data["endpoints"].get(endpoint_name)
+        if not endpoint_data:
+            messagebox.showerror("Ошибка", "Не найдено данных для эндпоинта.")
+            return
 
-            result = False
-            if "ssh" in self.listbox.get(selected[1]):
-                try:
-                    client = paramiko.SSHClient()
-                    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    client.connect(selected, timeout=5)
-                    client.close()
-                    result = True
-                except Exception:
-                    result = False
+        hostname = endpoint_data["address"]
+        port = int(endpoint_data["port"])
+        username = endpoint_data["login"]
+        password = endpoint_data["password"]
 
-            # Вывод результата в отдельном окне
-            tk._default_root.after(0, lambda: messagebox.showinfo("Тест соединения", 
-                            f"Соединение {'успешно' if result else 'не удалось'}"))
+        # Создаём окно сразу
+        result_window = tk.Toplevel()
+        result_window.title(f"Test '{endpoint_name}' connection")
 
-        # Запускаем проверку в отдельном потоке
-        threading.Thread(target=check, daemon=True).start()
+        text_widget = tk.Text(result_window, wrap="word", height=10, width=50)
+        text_widget.pack(fill="both", expand=True, padx=10, pady=10)
+        text_widget.config(state="disabled")
+
+        close_button = tk.Button(result_window, text="Закрыть", command=result_window.destroy)
+        close_button.pack(pady=5)
+
+        # Строка статуса
+        status_frame = tk.Frame(result_window)
+        status_frame.pack(pady=5)
+
+        status_label = tk.Label(status_frame, text="Connecting...", font=("Silkscreen", 9))
+        status_label.pack(side="left")
+
+        status_icon = tk.Canvas(status_frame, width=20, height=20, highlightthickness=0)
+        status_icon.pack(side="left", padx=5)
+
+        def update_output(text):
+            """Добавляет текст в окно с результатом."""
+            text_widget.config(state="normal")
+            text_widget.insert("end", text + "\n")
+            text_widget.see("end")
+            text_widget.config(state="disabled")
+
+        def animate_spinner(angle=0):
+            """Анимация вращающегося значка."""
+            status_icon.delete("all")
+            x0, y0, x1, y1 = 5, 5, 15, 15
+            status_icon.create_arc(x0, y0, x1, y1, start=angle, extent=270, outline="black", width=2)
+            if status_label["text"] == "Connecting...":
+                self.app.root.after(100, animate_spinner, (angle + 30) % 360)
+
+        def check_connection():
+            """Функция для проверки соединения."""
+            try:
+                ssh_client = paramiko.SSHClient()
+                ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh_client.connect(hostname, port=port, username=username, password=password, timeout=5)
+                ssh_client.close()
+                
+                self.app.root.after(0, lambda: status_label.config(text="Connected"))
+                self.app.root.after(0, lambda: status_icon.delete("all"))
+                self.app.root.after(0, lambda: status_icon.create_text(10, 10, text="✔", font=("Arial", 14), fill="green"))
+                self.app.root.after(0, lambda: update_output("Соединение успешно установлено!"))
+            except Exception as e:
+                self.app.root.after(0, lambda: update_output(f"Ошибка: {e}"))
+                self.app.root.after(0, lambda: status_label.config(text="Failed"))
+                self.app.root.after(0, lambda: status_icon.delete("all"))
+                self.app.root.after(0, lambda: status_icon.create_text(10, 10, text="✖", font=("Arial", 14), fill="red"))
+
+        # Запускаем индикатор загрузки
+        animate_spinner()
+        threading.Thread(target=check_connection, daemon=True).start()
 
     def delete_endpoint(self):
-        """Удаляет выбранный эндпоинт."""
+        """Удаляет выбранный скрипт."""
         selected = self.listbox.curselection()
         if not selected:
-            messagebox.showwarning("Предупреждение", "Не выбран эндпоинт для удаления!")
+            messagebox.showwarning("Ошибка", "Пожалуйста, выберите эндпоинт для удаления.")
             return
 
-        # Получаем имя выбранного эндпоинта
-        name = self.listbox.get(selected[0])
+        # Получаем имя скрипта, который нужно удалить
+        endpoint_name = self.listbox.get(selected[0])
 
-        # Запрашиваем подтверждение удаления
-        confirmation = messagebox.askyesno("Подтверждение удаления", f"Вы уверены, что хотите удалить эндпоинт '{name}'?")
+        # Удаляем скрипт из данных
+        if endpoint_name in self.app.data["endpoints"]:
+            del self.app.data["endpoints"][endpoint_name]
 
-        if confirmation:
-            # Удаляем эндпоинт из данных
-            self.app.data["endpoints"] = [ep for ep in self.app.data["endpoints"] if ep["name"] != name]
-            
-            # Обновляем список в интерфейсе
+            # Удаляем скрипт из списка в UI
             self.listbox.delete(selected[0])
 
             # Сохраняем обновлённые данные
             save_data(self.app.data)
 
+            # Очищаем поле с кодом и возвращаем в начальный экран
             self.clear_content_frame()
-            # Показываем уведомление об успешном удалении
-            messagebox.showinfo("Удаление", f"Эндпоинт '{name}' успешно удалён.")
+
+            messagebox.showinfo("Удалено", f"Скрипт '{endpoint_name}' был успешно удалён.")
+        else:
+            messagebox.showwarning("Ошибка", f"Скрипт '{endpoint_name}' не найден.")
   
     def load_existing_data(self):
-        """ Загружает эндпоинты в listbox, приводя старые строки к новому формату. """
-        updated_endpoints = []
-
-        for endpoint in self.app.data["endpoints"]:
-            if isinstance(endpoint, str):
-                # Старый формат (просто строка) -> преобразуем в словарь
-                endpoint = {"name": endpoint, "type": "unknown"}
-            
-            updated_endpoints.append(endpoint)
-            self.listbox.insert(tk.END, endpoint["name"])  # Используем name
-
-        # Обновляем self.app.data["endpoints"] новым форматом
-        self.app.data["endpoints"] = updated_endpoints
+        for script in self.app.data["endpoints"]:
+            self.listbox.insert(tk.END, script)
     
     def create_endpoint_fields(self, frame, name="", conn_type="ssh", endpoint_data=None):
         """Добавляет поля формы (Name, Type, Connection Details)"""
         tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        name_entry = tk.Entry(frame, width=32, bd=2)
-        name_entry.insert(0, name)
-        name_entry.pack(anchor="w", padx=5, pady=(0, 0))
+        self.name_entry = tk.Entry(frame, width=32, bd=2)
+        self.name_entry.insert(0, name)
+        self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
 
         tk.Label(frame, text="Type", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
         connection_types = ["ssh"]
         if FEATURE_FLAGS.get("ENABLE_SQL_SUPPORT", False):
             connection_types.extend(["PostgreSQL", "SQLite"])
-        connection_var = tk.StringVar(value=conn_type)
-        connection_dropdown = ttk.Combobox(frame, textvariable=connection_var, values=connection_types, width=30)
+        self.connection_var = tk.StringVar(value=conn_type)
+        connection_dropdown = ttk.Combobox(frame, textvariable=self.connection_var, values=connection_types, width=30)
         connection_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
         # Фрейм для SSH
@@ -156,15 +201,15 @@ class EndpointManager(BaseUI):
             sql_frame.pack_forget()
             sqlite_frame.pack_forget()
 
-            if connection_var.get() == "ssh":
+            if self.connection_var.get() == "ssh":
                 ssh_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
-            elif connection_var.get() == "PostgreSQL":
+            elif self.connection_var.get() == "PostgreSQL":
                 sql_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
-            elif connection_var.get() == "SQLite":
+            elif self.connection_var.get() == "SQLite":
                 sqlite_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
 
         # Подключаем обработчик изменения типа соединения
-        connection_var.trace_add("write", update_fields)
+        self.connection_var.trace_add("write", update_fields)
 
         # Заполнение полей, если переданы данные
         if endpoint_data:
@@ -185,37 +230,38 @@ class EndpointManager(BaseUI):
         # Инициализация правильного фрейма
         update_fields()
 
-        return name_entry, connection_var, ssh_frame, sql_frame, sqlite_frame, address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry
+        return address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry
 
     def add_endpoint(self):
         self.clear_content_frame()
         container, frame = self.create_form_container()
 
         # Создаём поля формы для добавления эндпоинта
-        name_entry, connection_var, ssh_frame, sql_frame, sqlite_frame, address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry = self.create_endpoint_fields(frame)
+        address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry = self.create_endpoint_fields(frame)
 
         def save_endpoint():
-            name = name_entry.get()
-            connection_type = connection_var.get()
+            name = self.name_entry.get()
+            connection_type = self.connection_var.get()
 
             if not name or not connection_type:
                 return  # Не сохраняем, если нет имени или типа подключения
 
-            new_endpoint = {"name": name, "type": connection_type}
-
-            if connection_type == "ssh":
-                new_endpoint.update({
+            if name and name not in self.app.data["endpoints"]:
+                if connection_type == "ssh":
+                    self.app.data["endpoints"][name] = {
+                    "type": self.connection_var.get(),
                     "address": address_entry.get(),
                     "port": port_entry.get(),
                     "login": login_entry.get(),
-                    "password": password_entry.get()
-                })
-
-            self.app.data["endpoints"].append(new_endpoint)
+                    "password": password_entry.get(),
+                    "options": {"Enable Logging": False, "Auto-Reconnect": False, "Use Compression": False}
+                }
             self.listbox.insert(tk.END, name)
             save_data(self.app.data)
-            save_btn.config(text="Saved")
+            save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
+            delete_btn = self.create_button(button_container, "Delete", self.delete_endpoint)
             save_btn.after(2000, lambda: save_btn.config(text="Save"))
+
 
         button_container = self.buttons_frame(container)
         save_btn = self.create_button(button_container, "Save", save_endpoint)
@@ -226,42 +272,37 @@ class EndpointManager(BaseUI):
     def display_endpoint(self, event):
         """ Отображает информацию о выбранном эндпоинте. """
         selected = self.listbox.curselection()
-        if not selected:
-            return
+        if selected:
+            name = self.listbox.get(selected[0])
+            endpoint_data = self.app.data["endpoints"][name]
 
-        name = self.listbox.get(selected[0])
+            self.clear_content_frame()
+            container, frame = self.create_form_container()
 
-        # Ищем эндпоинт по имени
-        endpoint_data = next((ep for ep in self.app.data["endpoints"] if ep["name"] == name), None)
-        if not endpoint_data:
-            return
 
-        self.clear_content_frame()
-        container, frame = self.create_form_container()
+            # Создаём поля формы для отображения эндпоинта
+            self.create_endpoint_fields(frame, name=name, conn_type=endpoint_data["type"], endpoint_data=endpoint_data)
 
-        # Создаём поля формы для отображения эндпоинта
-        name_entry, connection_var, ssh_frame, sql_frame, sqlite_frame, address_entry, port_entry, login_entry, password_entry, sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry, sqlite_file_entry = self.create_endpoint_fields(frame, name=endpoint_data["name"], conn_type=endpoint_data["type"], endpoint_data=endpoint_data)
+            def save_changes():
 
-        def save_changes():
-            endpoint_data["name"] = name_entry.get()
-            endpoint_data["type"] = connection_var.get()
+                endpoint_data["type"] = connection_var.get()
 
-            if endpoint_data["type"] == "ssh":
-                endpoint_data["address"] = address_entry.get()
-                endpoint_data["port"] = port_entry.get()
-                endpoint_data["login"] = login_entry.get()
-                endpoint_data["password"] = password_entry.get()
+                if endpoint_data["type"] == "ssh":
+                    endpoint_data["address"] = address_entry.get()
+                    endpoint_data["port"] = port_entry.get()
+                    endpoint_data["login"] = login_entry.get()
+                    endpoint_data["password"] = password_entry.get()
 
-            save_data(self.app.data)
-            save_btn.config(text="Saved")
-            save_btn.after(2000, lambda: save_btn.config(text="Save"))
+                save_data(self.app.data)
+                save_btn.config(text="Saved")
+                save_btn.after(2000, lambda: save_btn.config(text="Save"))
 
-        button_container = self.buttons_frame(container)
-        save_btn = self.create_button(button_container, "Save", save_changes)
-        cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
-        test_btn = self.create_button(button_container, "Test", self.test_connection)
-        opt_btn = self.create_button(button_container, "Options", lambda: self.open_options_window(name))
-        delete_btn = self.create_button(button_container, "Delete", self.delete_endpoint)
+            button_container = self.buttons_frame(container)
+            save_btn = self.create_button(button_container, "Save", save_changes)
+            cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
+            test_btn = self.create_button(button_container, "Test", self.test_connection)
+            opt_btn = self.create_button(button_container, "Options", lambda: self.open_options_window(name))
+            delete_btn = self.create_button(button_container, "Delete", self.delete_endpoint)
 
 
 

@@ -60,7 +60,7 @@ class ScriptManager(BaseUI):
         script_code = self.script_text.get("1.0", tk.END).strip()
         endpoint_name = self.endpoint_var.get()
 
-        endpoint_data = next((ep for ep in self.app.data["endpoints"] if ep["name"] == endpoint_name), None)
+        endpoint_data = self.app.data["endpoints"].get(endpoint_name)
         if not endpoint_data:
             messagebox.showerror("Ошибка", f"Эндпоинт '{endpoint_name}' не найден.")
             return
@@ -208,7 +208,7 @@ class ScriptManager(BaseUI):
         interpreter_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
         tk.Label(frame, text="Endpoint", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        endpoint_names = [endpoint["name"] for endpoint in self.app.data["endpoints"]]
+        endpoint_names = list(self.app.data["endpoints"].keys())
         self.endpoint_var = tk.StringVar(value=endpoint)
         endpoint_dropdown = ttk.Combobox(frame, textvariable=self.endpoint_var, values=endpoint_names, width=30)
         endpoint_dropdown.pack(anchor="w", padx=5, pady=(0, 8))
