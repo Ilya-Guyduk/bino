@@ -1,18 +1,19 @@
+"""module docstring"""
+
 import tkinter as tk
-from interpreters.python import PythonInterpreter
-from interpreters.bash import BashInterpreter
 
 class BaseUI:
+    """class docstring"""
     def __init__(self, app):
         self.app = app
 
     def setup_listbox(self, container, bind_command, add_button_command):
+        """Создает листбокс и кнопку"""
         self.listbox = tk.Listbox(container)
         self.listbox.pack(fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", bind_command)
         self.add_button = self.create_button(container, "Add", add_button_command)
         self.add_button.pack(fill=tk.X)
-        
 
     def create_form_container(self):
         """Создаёт контейнер и рамку формы"""
@@ -27,7 +28,7 @@ class BaseUI:
         logo_label.pack(side=tk.RIGHT, anchor="ne", padx=5)
 
         return container, frame
-    
+
     def clear_content_frame(self):
         """Очистка основного контентного фрейма."""
         for widget in self.app.content_frame.winfo_children():
