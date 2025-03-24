@@ -32,32 +32,6 @@ class EndpointManager:
         self.ui.setup_listbox(self.app.endpoints_frame, self.display_endpoint, self.add_endpoint)
         self.load_existing_data()
 
-    def open_options_window(self, endpoint_name):
-        """Открывает окно для выбора опций эндпоинта."""
-        if endpoint_name not in self.app.data["endpoints"]:
-            return
-
-        options_window = tk.Toplevel(self.app.root)
-        options_window.title(f"Options for {endpoint_name}")
-        options_window.geometry("300x200")
-
-        endpoint_options = self.app.data["endpoints"].setdefault(endpoint_name, {}).setdefault("options", {})
-        options_vars = {opt: tk.BooleanVar(value=endpoint_options.get(opt, False)) for opt in ["Enable Logging", "Auto-Reconnect", "Use Compression"]}
-
-        for option, var in options_vars.items():
-            ttk.Checkbutton(options_window, 
-                            text=option, 
-                            variable=var).pack(anchor="w", padx=10, pady=5)
-
-        def save_options():
-            for opt, var in options_vars.items():
-                endpoint_options[opt] = var.get()
-            save_data(self.app.data)
-            options_window.destroy()
-
-        save_btn = ttk.Button(options_window, text="Save", command=save_options)
-        save_btn.pack(pady=10)
-
     def test_connection(self):
         """Проверка соединения с эндпоинтом с потоковым выводом статуса."""
         selected = self.listbox.curselection()
@@ -167,8 +141,8 @@ class EndpointManager:
 
     def load_existing_data(self):
         """docstring"""
-        for script in self.app.data["endpoints"]:
-            self.ui.listbox.insert(tk.END, script)
+        for endpoint in self.app.data["endpoints"]:
+            self.ui.listbox.insert(tk.END, endpoint)
 
     def create_endpoint_fields(self, frame, name="", conn_type="ssh", endpoint_data=None):
         """Добавляет поля формы (Name, Type, Connection Details)"""
@@ -274,7 +248,7 @@ class EndpointManager:
         save_btn = self.ui.create_button(button_container, "Save", save_endpoint)
         self.ui.create_button(button_container, "Cancel", self.clear_content_frame)
         self.ui.create_button(button_container, "Test", self.test_connection)
-        self.ui.create_button(button_container, "Options", lambda: self.open_options_window(name))
+        self.ui.create_button(button_container, "Options", self.open_options_window)
 
     def display_endpoint(self, event):
         """ Отображает информацию о выбранном эндпоинте. """
@@ -306,7 +280,7 @@ class EndpointManager:
 
             button_container = self.ui.buttons_frame(container)
             save_btn = self.ui.create_button(button_container, "Save", save_changes)
-            self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
+            self.ui.create_button(button_container, "Cancel",self.ui.clear_content_frame)
             self.ui.create_button(button_container, "Test", self.test_connection)
-            self.ui.create_button(button_container, "Options", lambda: self.open_options_window(name))
+            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "connector"))
             self.ui.create_button(button_container, "Delete", self.delete_endpoint)

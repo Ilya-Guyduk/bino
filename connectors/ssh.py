@@ -20,7 +20,30 @@ class SshConnector:
 
         :param interpreter_args: Arguments for the SSH connection (default is an empty string).
         """
-        self.interpreter_args = interpreter_args
+        self.available_options = {
+            "--debug": False,
+            "--debugger": False,
+            "--dump-po-strings": False,
+            "--dump-strings": False,
+            "--help": False,
+            "--init-file": False,
+            "--login": False,
+            "--noediting": False,
+            "--noprofile": False,
+            "--norc": False,
+            "--posix": False,
+            "--pretty-print": False,
+            "--rcfile": False,
+            "--restricted": False,
+            "--verbose": False,
+            "--version": False
+        }
+        
+        if interpreter_args:
+            for key in interpreter_args:
+                if key in self.available_options:
+                    self.available_options[key] = interpreter_args[key]
+
 
     def test_ssh_connection(self, endpoint):
         """

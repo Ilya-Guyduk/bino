@@ -17,7 +17,7 @@ import webbrowser
 from storage import load_data
 from script_manager import ScriptManager
 from endpoint_manager import EndpointManager
-from config import VERSION
+
 
 
 class App:
@@ -31,13 +31,7 @@ class App:
 
         :param root: The root Tkinter window.
         """
-        self.bino_logo = (
-            " _   _         \n"
-            "| |_| |___ ___ \n"
-            "| . |_|   | . |\n"
-            "|___|_|_|_|___|\n"
-            f"/////{VERSION}////"
-        )
+        
 
         # Configure the main application window
         self.root = root

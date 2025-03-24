@@ -232,11 +232,13 @@ class ScriptManager:
 
         def save_script():
             name = self.name_entry.get()
+            interpreter_name = self.interpreter_var.get()
             if name and name not in self.app.data["scripts"]:
                 self.app.data["scripts"][name] = {
-                    "interpreter": self.interpreter_var.get(),
+                    "interpreter": interpreter_name,
                     "endpoint": self.endpoint_var.get(),
-                    "code": self.script_text.get("1.0", tk.END)
+                    "code": self.script_text.get("1.0", tk.END),
+                    "options": self.interpreters[interpreter_name].available_options
                 }
                 self.ui.listbox.insert(tk.END, name)
                 save_data(self.app.data)
@@ -246,9 +248,9 @@ class ScriptManager:
 
         button_container = self.ui.buttons_frame(container)
         save_btn = self.ui.create_button(button_container, "Save", save_script)
-        self.ui.create_button(button_container, "Cancel", self.clear_content_frame)
+        self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
         self.ui.create_button(button_container, "Start", self.run_script)
-        self.ui.create_button(button_container, "Options", self.clear_content_frame)
+        self.ui.create_button(button_container, "Options", self.open_options_window)
         self.create_code_field()
 
 
@@ -277,7 +279,7 @@ class ScriptManager:
             save_btn = self.ui.create_button(button_container, "Save", save_script)
             self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
             self.ui.create_button(button_container, "Start", self.run_script)
-            self.ui.create_button(button_container, "Options", self.ui.clear_content_frame)
+            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "interpreter"))
             self.ui.create_button(button_container, "Delete", self.delete_script)
 
             self.create_code_field(script_data["code"])

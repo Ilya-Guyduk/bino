@@ -5,6 +5,12 @@ from tkinter import font
 from ctypes import windll, byref, create_unicode_buffer, create_string_buffer
 import os
 
+from config import VERSION
+from interpreters.python import PythonInterpreter
+from interpreters.bash import BashInterpreter
+from connectors.ssh import SshConnector
+from connectors.PostgreSQL import PostgresConnector
+
 FR_PRIVATE = 0x10
 FR_NOT_ENUM = 0x20
 
@@ -34,6 +40,13 @@ def loadfont(fontpath, private=True, enumerable=False):
 class BaseUI:
     """class docstring"""
     def __init__(self, app):
+        self.bino_logo = (
+            " _   _         \n"
+            "| |_| |___ ___ \n"
+            "| . |_|   | . |\n"
+            "|___|_|_|_|___|\n"
+            f"/////{VERSION}////"
+        )
         self.app = app
         self.init_font()
 
@@ -53,17 +66,63 @@ class BaseUI:
         else:
             print("Ошибка загрузки шрифта")
             self.custom_font = tk.font.Font(family="Courier", size=12)
+    
+    def open_options_window(self,parent_name, opt_type):
+        """Открывает окно для выбора опций эндпоинта."""
+        self.connectors = {
+            "ssh": SshConnector(),
+            "PostgreSQL": PostgresConnector()
+        }
+        self.interpreters = {
+            "python": PythonInterpreter(),
+            "bash": BashInterpreter()
+        }
 
-    def create_form_container(self):
+        options_window = tk.Toplevel()
+        options_window.title(f"Options")
+        container, frame = self.create_form_container(parent=options_window)
+
+        if opt_type == "connector":
+            parent_data = self.app.data["endpoints"][parent_name]
+            ch_type = parent_data["type"]
+            self.point_data = self.connectors
+        elif opt_type == "interpreter":
+            parent_data = self.app.data["scripts"][parent_name]
+            ch_type = parent_data["interpreter"]
+            self.point_data = self.interpreters
+        
+        options_vars = {}
+        for i, option in enumerate(self.point_data[ch_type].available_options):
+            var = tk.BooleanVar(value=parent_data.get("options", {}).get(option, False))
+            chk = tk.Checkbutton(frame, text=option, variable=var, bg="#C0C0C0")
+            chk.pack(anchor="w")
+            options_vars[option] = var
+
+        def save_options():
+            # Сохраняем изменения
+            if "options" not in parent_data:
+                parent_data["options"] = {}
+            for opt, var in options_vars.items():
+                parent_data["options"][opt] = var.get()
+            save_data(self.app.data)
+            options_window.destroy()
+
+        button_container = self.buttons_frame(container)
+        save_btn = self.create_button(button_container, "Save", save_options)
+        save_btn.grid(row=len(options_vars), column=0, pady=10)  # Также grid()
+
+    def create_form_container(self, parent=None):
         """Создаёт контейнер и рамку формы"""
-        container = tk.Frame(self.app.content_frame)
+        if parent is None:
+            parent = self.app.content_frame
+        container = tk.Frame(parent)
         container.pack(fill="x", padx=7, pady=(0, 5))
         container.columnconfigure(0, weight=1)
 
         frame = tk.Frame(container, relief="groove", borderwidth=2, bg="#C0C0C0")
         frame.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
-        logo_label = tk.Label(frame, text=self.app.bino_logo, font=("Courier", 10, "bold"), bg="#C0C0C0", anchor="e")
+        logo_label = tk.Label(frame, text=self.bino_logo, font=("Courier", 10, "bold"), bg="#C0C0C0", anchor="e")
         logo_label.pack(side=tk.RIGHT, anchor="ne", padx=5)
 
         return container, frame
