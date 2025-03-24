@@ -146,12 +146,10 @@ class EndpointManager:
 
     def create_endpoint_fields(self, frame, name="", conn_type="ssh", endpoint_data=None):
         """Добавляет поля формы (Name, Type, Connection Details)"""
-        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        self.name_entry = tk.Entry(frame, width=32, bd=2)
-        self.name_entry.insert(0, name)
-        self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
+        self.ui.create_lebel(frame,"Name")
+        self.name_entry = self.ui.create_entry(frame, name)
 
-        tk.Label(frame, text="Type", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        self.ui.create_lebel(frame,"Type")
         connection_types = ["ssh"]
         if FEATURE_FLAGS.get("ENABLE_SQL_SUPPORT", False):
             connection_types.extend(["PostgreSQL", "SQLite"])

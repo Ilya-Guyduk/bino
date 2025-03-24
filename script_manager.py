@@ -201,17 +201,15 @@ class ScriptManager:
 
     def create_script_fields(self, frame, name="", interpreter="python", endpoint=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
-        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#d5a78d").pack(anchor="w", padx=4, pady=(0, 0))
-        self.name_entry = tk.Entry(frame, width=32, bd=1)
-        self.name_entry.insert(0, name)
-        self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
+        self.ui.create_lebel(frame,"Name")
+        self.name_entry = self.ui.create_entry(frame, name)
 
-        tk.Label(frame, text="Interpreter", font=("Silkscreen", 9), bg="#d5a78d").pack(anchor="w", padx=4, pady=(0, 0))
+        self.ui.create_lebel(frame,"Interpreter")
         self.interpreter_var = tk.StringVar(value=interpreter)
         interpreter_dropdown = ttk.Combobox(frame, textvariable=self.interpreter_var, values=["python", "bash"], width=30)
         interpreter_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
-        tk.Label(frame, text="Endpoint", font=("Silkscreen", 9), bg="#d5a78d").pack(anchor="w", padx=4, pady=(0, 0))
+        self.ui.create_lebel(frame,"Endpoint")
         endpoint_names = list(self.app.data["endpoints"].keys())
         self.endpoint_var = tk.StringVar(value=endpoint)
         endpoint_dropdown = ttk.Combobox(frame, textvariable=self.endpoint_var, values=endpoint_names, width=30)
@@ -219,7 +217,7 @@ class ScriptManager:
 
     def create_code_field(self, code=""):
         """Создаёт текстовое поле с кодом"""
-        tk.Label(self.app.content_frame, text="Code:", font=("Silkscreen", 9),bg="#f2ceae", fg="#000080").pack(anchor="w", padx=7)
+        self.ui.create_lebel(self.app.content_frame,"Code:")
 
         self.script_text = scrolledtext.ScrolledText(self.app.content_frame, height=10, wrap=tk.WORD, font=("Courier", 10))
         self.script_text.insert("1.0", code)

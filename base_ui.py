@@ -159,3 +159,15 @@ class BaseUI:
         btn.bind("<Leave>", on_leave)
 
         return btn
+
+    def create_lebel(self, frame, name):
+
+        tk.Label(frame, text=name, font=("Silkscreen", 9), bg=frame.cget('bg')).pack(anchor="w", padx=4, pady=(0, 0))
+
+    def create_entry(self, frame, name):
+
+        entry = tk.Entry(frame, width=32, bd=1)
+        entry.insert(0, name)
+        entry.pack(anchor="w", padx=5, pady=(0, 0))
+
+        return entry

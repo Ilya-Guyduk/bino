@@ -6,23 +6,34 @@ class PythonInterpreter:
         :param interpreter_args: Аргументы для интерпретатора (по умолчанию "-c")
         """
         self.available_options = {
-            "--debug": False,
-            "--debugger": False,
-            "--dump-po-strings": False,
-            "--dump-strings": False,
-            "--help": False,
-            "--init-file": False,
-            "--login": False,
-            "--noediting": False,
-            "--noprofile": False,
-            "--norc": False,
-            "--posix": False,
-            "--pretty-print": False,
-            "--rcfile": False,
-            "--restricted": False,
-            "--verbose": False,
-            "--version": False
+            "-c": None,                          # Выполнение строки Python-кода
+            "-m": None,                          # Запуск модуля как скрипта
+            "--help": False,                     # Показывает справку по использованию Python
+            "--version": False,                  # Показывает версию Python
+            "-V": False,                         # Псевдоним для --version
+            "-i": False,                         # Запускает интерактивную оболочку после выполнения скрипта
+            "-u": False,                         # Включает небуферизованный режим вывода
+            "-O": False,                         # Запускает в оптимизированном режиме (без assert, .pyo файлы)
+            "-B": False,                         # Не создает .pyc файлы
+            "-s": False,                         # Не загружать файл site.py
+            "-S": False,                         # Не инициализировать стандартную библиотеку
+            "--no-user-site": False,             # Не использовать директорию user-site
+            "--user-site": False,                # Использует директорию user-site для модулей
+            "--no-warn-script-location": False,  # Отключает предупреждения о местоположении исполнимых файлов
+            "-v": False,                         # Включает подробный вывод, трассировку импорта
+            "-X": None,                          # Устанавливает параметры интерпретатора (например, -X dev)
+            "--check-hash-based-pycs": False,    # Отключает создание .pyc файлов на основе хеша
+            "--enable-shared": False,            # Компилирует Python как разделяемую библиотеку
+            "--with-pymalloc": False,            # Включает использование PyMalloc для памяти
+            "--without-ensurepip": False,        # Отключает встроенный модуль ensurepip
+            "--with-threads": False,             # Включает поддержку многопоточности
+            "--without-gcc": False,              # Отключает поддержку компиляции C
+            "--no-site": False,                  # Отключает загрузку модулей из site.py
+            "--pythonpath": None,                # Устанавливает PYTHONPATH
+            "--help-verbose": False,             # Подробная справка
+            "--no-warn-implicit-python3": False  # Отключает предупреждения о неявном использовании Python 3
         }
+
         
         if interpreter_args:
             for key in interpreter_args:
