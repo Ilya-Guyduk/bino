@@ -57,8 +57,11 @@ class ScriptManager:
 
     def run_script(self):
         """Запуск скрипта на удалённом сервере по SSH с потоковым выводом и статусом подключения."""
-        interpreter_name = self.interpreter_var.get()
+        name = self.name_entry.get()
+        script = self.app.data["scripts"].get(name)
+        interpreter_name = script["interpreter"]
         script_code = self.script_text.get("1.0", tk.END).strip()
+        options = script["options"]
         endpoint_name = self.endpoint_var.get()
 
         endpoint_data = self.app.data["endpoints"].get(endpoint_name)
@@ -121,7 +124,7 @@ class ScriptManager:
 
                 if interpreter_name in self.interpreters:
                     interpreter = self.interpreters[interpreter_name]
-                    command = interpreter.format_command(script_code)
+                    command = interpreter.format_command(script_code, options)
                 else:
                     command = script_code
 
@@ -198,17 +201,17 @@ class ScriptManager:
 
     def create_script_fields(self, frame, name="", interpreter="python", endpoint=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
-        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        self.name_entry = tk.Entry(frame, width=32, bd=2)
+        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#d5a78d").pack(anchor="w", padx=4, pady=(0, 0))
+        self.name_entry = tk.Entry(frame, width=32, bd=1)
         self.name_entry.insert(0, name)
         self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
 
-        tk.Label(frame, text="Interpreter", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Interpreter", font=("Silkscreen", 9), bg="#d5a78d").pack(anchor="w", padx=4, pady=(0, 0))
         self.interpreter_var = tk.StringVar(value=interpreter)
         interpreter_dropdown = ttk.Combobox(frame, textvariable=self.interpreter_var, values=["python", "bash"], width=30)
         interpreter_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
-        tk.Label(frame, text="Endpoint", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        tk.Label(frame, text="Endpoint", font=("Silkscreen", 9), bg="#d5a78d").pack(anchor="w", padx=4, pady=(0, 0))
         endpoint_names = list(self.app.data["endpoints"].keys())
         self.endpoint_var = tk.StringVar(value=endpoint)
         endpoint_dropdown = ttk.Combobox(frame, textvariable=self.endpoint_var, values=endpoint_names, width=30)
@@ -216,12 +219,12 @@ class ScriptManager:
 
     def create_code_field(self, code=""):
         """Создаёт текстовое поле с кодом"""
-        tk.Label(self.app.content_frame, text="Code:", font=("Silkscreen", 9), fg="#000080").pack(anchor="w", padx=7)
+        tk.Label(self.app.content_frame, text="Code:", font=("Silkscreen", 9),bg="#f2ceae", fg="#000080").pack(anchor="w", padx=7)
 
         self.script_text = scrolledtext.ScrolledText(self.app.content_frame, height=10, wrap=tk.WORD, font=("Courier", 10))
         self.script_text.insert("1.0", code)
         self.script_text.config(tabs=4)
-        self.script_text.pack(fill=tk.BOTH, expand=True, padx=7, pady=(0, 7))
+        self.script_text.pack(fill=tk.BOTH, expand=True, padx=(0, 0), pady=(0, 0))
 
 
     def add_script(self):

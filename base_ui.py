@@ -5,6 +5,7 @@ from tkinter import font
 from ctypes import windll, byref, create_unicode_buffer, create_string_buffer
 import os
 
+from storage import save_data
 from config import VERSION
 from interpreters.python import PythonInterpreter
 from interpreters.bash import BashInterpreter
@@ -52,7 +53,7 @@ class BaseUI:
 
     def setup_listbox(self, container, bind_command, add_button_command):
         """Создает листбокс и кнопку"""
-        self.listbox = tk.Listbox(container)
+        self.listbox = tk.Listbox(container, selectbackground="#f37600", selectforeground="black")
         self.listbox.pack(fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", bind_command)
         self.add_button = self.create_button(container, "Add", add_button_command)
@@ -115,14 +116,14 @@ class BaseUI:
         """Создаёт контейнер и рамку формы"""
         if parent is None:
             parent = self.app.content_frame
-        container = tk.Frame(parent)
-        container.pack(fill="x", padx=7, pady=(0, 5))
+        container = tk.Frame(parent, bg="#f2ceae")
+        container.pack(fill="x", padx=(0, 0), pady=(0, 0))
         container.columnconfigure(0, weight=1)
 
-        frame = tk.Frame(container, relief="groove", borderwidth=2, bg="#C0C0C0")
-        frame.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        frame = tk.Frame(container, relief="groove", borderwidth=2, bg="#d5a78d")
+        frame.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
 
-        logo_label = tk.Label(frame, text=self.bino_logo, font=("Courier", 10, "bold"), bg="#C0C0C0", anchor="e")
+        logo_label = tk.Label(frame, text=self.bino_logo, font=("Courier", 10, "bold"), bg="#d5a78d", anchor="e")
         logo_label.pack(side=tk.RIGHT, anchor="ne", padx=5)
 
         return container, frame
@@ -133,7 +134,7 @@ class BaseUI:
             widget.destroy()
 
     def buttons_frame(self, container):
-        buttons_frame = tk.Frame(container)
+        buttons_frame = tk.Frame(container, bg="#f2ceae")
         buttons_frame.grid(row=0, column=1, sticky="ne")
 
         return buttons_frame
@@ -147,13 +148,13 @@ class BaseUI:
         """
 
         def on_enter(e):
-            e.widget.config(bg="gray80")
+            e.widget.config(bg="#d5a78d")
 
         def on_leave(e):
-            e.widget.config(bg="SystemButtonFace")
+            e.widget.config(bg="#ffffff")
 
-        btn = tk.Button(buttons_frame, text=user_text, font=("Silkscreen", 9), command=user_command)
-        btn.pack(fill="x", pady=0)
+        btn = tk.Button(buttons_frame, text=user_text, font=("Silkscreen", 9), bg="#ffffff", command=user_command)
+        btn.pack(fill="x", pady=(2,0))
         btn.bind("<Enter>", on_enter)
         btn.bind("<Leave>", on_leave)
 
