@@ -1,33 +1,81 @@
 import subprocess
+from typing import Dict, Any, List
 
 class BashInterpreter:
     def __init__(self, interpreter_args=None):
         """
         :param interpreter_args: Словарь с аргументами интерпретатора
         """
-        self.available_options = {
-            "--debug": False,
-            "--debugger": False,
-            "--dump-po-strings": False,
-            "--dump-strings": False,
-            "--help": False,
-            "--init-file": False,
-            "--login": False,
-            "--noediting": False,
-            "--noprofile": False,
-            "--norc": False,
-            "--posix": False,
-            "--pretty-print": False,
-            "--rcfile": False,
-            "--restricted": False,
-            "--verbose": False,
-            "--version": False
+        self.available_options: Dict[str, Dict[str, Any]] = self.default_options()
+
+    def default_options(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Возвращает настройки по умолчанию для SSH-коннектора.
+        """
+
+        return {
+            "timeout": {
+                "type": int,
+                "description": "Таймаут подключения (в секундах)",
+                "value": 5
+            },
+            "allow_agent": {
+                "type": bool,
+                "description": "Разрешить использование SSH-агента",
+                "value": False
+            },
+            "look_for_keys": {
+                "type": bool,
+                "description": "Искать ключи для аутентификации в стандартных местах",
+                "value": False
+            },
+            "key_filename": {
+                "type": str,
+                "description": "Путь к файлу приватного ключа",
+                "value": None
+            },
+            "passphrase": {
+                "type": str,
+                "description": "Парольная фраза для ключа",
+                "value": None
+            },
+            "auth_timeout": {
+                "type": int,
+                "description": "Таймаут аутентификации (в секундах)",
+                "value": 10
+            },
+            "banner_timeout": {
+                "type": int,
+                "description": "Таймаут ожидания баннера SSH (в секундах)",
+                "value": 15
+            },
+            "compress": {
+                "type": bool,
+                "description": "Использование сжатия",
+                "value": False
+            },
+            "disabled_algorithms": {
+                "type": list,
+                "description": "Список отключённых алгоритмов для SSH",
+                "value": None
+            },
+            "sock": {
+                "type": object,
+                "description": "Предустановленное сокет-соединение",
+                "value": None
+            },
+            "gss_auth": {
+                "type": bool,
+                "description": "Использование GSS-API аутентификации",
+                "value": False
+            },
+            "gss_kex": {
+                "type": bool,
+                "description": "Использование GSS-API для обмена ключами",
+                "value": False
+            }
         }
-        
-        if interpreter_args:
-            for key in interpreter_args:
-                if key in self.available_options:
-                    self.available_options[key] = interpreter_args[key]
+
 
     def format_command(self, script_code, options):
         """Форматирует команду для выполнения в bash."""

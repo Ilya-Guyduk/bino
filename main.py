@@ -16,6 +16,7 @@ Run this script to start the application.
 import sys
 import os
 from tkinter import Tk
+import tkinter as tk
 from ui import App
 
 

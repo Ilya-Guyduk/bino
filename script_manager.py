@@ -69,7 +69,7 @@ class ScriptManager:
             messagebox.showerror("Ошибка", f"Эндпоинт '{endpoint_name}' не найден.")
             return
 
-        hostname = endpoint_data["address"]
+        hostname = endpoint_data["ip"]
         port = int(endpoint_data["port"])
         username = endpoint_data["login"]
         password = endpoint_data["password"]
@@ -201,23 +201,22 @@ class ScriptManager:
 
     def create_script_fields(self, frame, name="", interpreter="python", endpoint=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
-        self.ui.create_lebel(frame,"Name")
+        self.ui.create_label(frame,"Name")
         self.name_entry = self.ui.create_entry(frame, name)
 
-        self.ui.create_lebel(frame,"Interpreter")
+        self.ui.create_label(frame,"Interpreter")
         self.interpreter_var = tk.StringVar(value=interpreter)
-        interpreter_dropdown = ttk.Combobox(frame, textvariable=self.interpreter_var, values=["python", "bash"], width=30)
-        interpreter_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
+        interpreter_dropdown = self.ui.create_combobox(frame, self.interpreter_var, ["python", "bash"])
 
-        self.ui.create_lebel(frame,"Endpoint")
+
+        self.ui.create_label(frame,"Endpoint")
         endpoint_names = list(self.app.data["endpoints"].keys())
         self.endpoint_var = tk.StringVar(value=endpoint)
-        endpoint_dropdown = ttk.Combobox(frame, textvariable=self.endpoint_var, values=endpoint_names, width=30)
-        endpoint_dropdown.pack(anchor="w", padx=5, pady=(0, 8))
+        interpreter_dropdown = self.ui.create_combobox(frame, self.endpoint_var, endpoint_names)
 
     def create_code_field(self, code=""):
         """Создаёт текстовое поле с кодом"""
-        self.ui.create_lebel(self.app.content_frame,"Code:")
+        self.ui.create_label(self.app.content_frame,"Code:")
 
         self.script_text = scrolledtext.ScrolledText(self.app.content_frame, height=10, wrap=tk.WORD, font=("Courier", 10))
         self.script_text.insert("1.0", code)
@@ -280,7 +279,7 @@ class ScriptManager:
             save_btn = self.ui.create_button(button_container, "Save", save_script)
             self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
             self.ui.create_button(button_container, "Start", self.run_script)
-            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "interpreter"))
+            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "scripts"))
             self.ui.create_button(button_container, "Delete", self.delete_script)
 
             self.create_code_field(script_data["code"])

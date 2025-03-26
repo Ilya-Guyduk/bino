@@ -1,100 +1,128 @@
-"""
-This module provides an SSH connection utility with a GUI component for entering SSH credentials.
-
-It includes:
-- A `SshConnector` class for testing SSH connections using `paramiko`.
-- A method for creating Tkinter-based input fields for SSH connection parameters.
-"""
-import tkinter as tk
 import paramiko
+from typing import Dict, Any, List
+from .base_connector import BaseConnector
 
-class SshConnector:
+
+class SshConnector(BaseConnector):
     """
-    This class provides methods to test SSH connections and create input fields 
-    for SSH connection details in a Tkinter GUI.
+    SSH-коннектор для подключения к удалённым серверам по SSH.
     """
 
-    def __init__(self, interpreter_args=""):
+    def default_options(self) -> Dict[str, Dict[str, Any]]:
         """
-        Initializes the SSH connector with optional interpreter arguments.
+        Возвращает настройки по умолчанию для SSH-коннектора.
+        """
 
-        :param interpreter_args: Arguments for the SSH connection (default is an empty string).
-        """
-        self.available_options = {
-            "--debug": False,
-            "--debugger": False,
-            "--dump-po-strings": False,
-            "--dump-strings": False,
-            "--help": False,
-            "--init-file": False,
-            "--login": False,
-            "--noediting": False,
-            "--noprofile": False,
-            "--norc": False,
-            "--posix": False,
-            "--pretty-print": False,
-            "--rcfile": False,
-            "--restricted": False,
-            "--verbose": False,
-            "--version": False
+        return {
+            "timeout": {
+                "type": int,
+                "description": "Таймаут подключения (в секундах)",
+                "value": 5
+            },
+            "allow_agent": {
+                "type": bool,
+                "description": "Разрешить использование SSH-агента",
+                "value": False
+            },
+            "look_for_keys": {
+                "type": bool,
+                "description": "Искать ключи для аутентификации в стандартных местах",
+                "value": False
+            },
+            "key_filename": {
+                "type": str,
+                "description": "Путь к файлу приватного ключа",
+                "value": None
+            },
+            "passphrase": {
+                "type": str,
+                "description": "Парольная фраза для ключа",
+                "value": None
+            },
+            "auth_timeout": {
+                "type": int,
+                "description": "Таймаут аутентификации (в секундах)",
+                "value": 10
+            },
+            "banner_timeout": {
+                "type": int,
+                "description": "Таймаут ожидания баннера SSH (в секундах)",
+                "value": 15
+            },
+            "compress": {
+                "type": bool,
+                "description": "Использование сжатия",
+                "value": False
+            },
+            "disabled_algorithms": {
+                "type": list,
+                "description": "Список отключённых алгоритмов для SSH",
+                "value": None
+            },
+            "sock": {
+                "type": object,
+                "description": "Предустановленное сокет-соединение",
+                "value": None
+            },
+            "gss_auth": {
+                "type": bool,
+                "description": "Использование GSS-API аутентификации",
+                "value": False
+            },
+            "gss_kex": {
+                "type": bool,
+                "description": "Использование GSS-API для обмена ключами",
+                "value": False
+            }
         }
-        
-        if interpreter_args:
-            for key in interpreter_args:
-                if key in self.available_options:
-                    self.available_options[key] = interpreter_args[key]
 
 
-    def test_ssh_connection(self, endpoint):
+    def get_required_fields(self) -> List[str]:
         """
-        Tests the SSH connection to the specified endpoint.
+        Возвращает список обязательных полей для подключения по SSH.
+        """
+        return ["ip", "port", "login", "password"]
 
-        :param endpoint: A dictionary containing connection details like address, port, 
-                         login, and password.
-        :return: True if the connection is successful, False otherwise.
+    def connect(self, params: Dict[str, Any]) -> paramiko.SSHClient:
+        """
+        Подключается к SSH-серверу и возвращает клиент.
+        """
+        self.validate_params(params)  # Проверяем, что все параметры на месте
+        print(params)
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            hostname=params["ip"],
+            port=int(params["port"]),
+            username=params["login"],
+            password=params["password"],
+            timeout=params.get("timeout", 5),
+            allow_agent=params.get("allow_agent", False),
+            look_for_keys=params.get("look_for_keys", False),
+            key_filename=params.get("key_filename", None),
+            passphrase=params.get("passphrase", None),
+            auth_timeout=params.get("auth_timeout", 10),
+            banner_timeout=params.get("banner_timeout", 15),
+            compress=params.get("compress", False),
+            disabled_algorithms=params.get("disabled_algorithms", None),
+            sock=params.get("sock", None),
+            gss_auth=params.get("gss_auth", False),
+            gss_kex=params.get("gss_kex", False)
+        )
+        return client
+
+    def test_connection(self, params: Dict[str, Any]) -> bool:
+        """
+        Проверяет возможность SSH-подключения.
         """
         try:
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            # Разбиваем длинную строку на две для улучшения читаемости
-            client.connect(
-                endpoint["address"], port=int(endpoint["port"]),
-                username=endpoint["login"], password=endpoint["password"], timeout=5
-            )
+            client = self.connect(params)
             client.close()
-            return True
+            return True, ""
         except paramiko.AuthenticationException:
-            # Ловим конкретное исключение для аутентификации
-            return False
+            return False, "Ошибка аутентификации. Проверьте логин/пароль."
         except paramiko.SSHException as e:
-            print(f"SSH error: {e}")
-            return False
+            return False, e
         except Exception as e:
-            print(f"General error: {e}")
-            return False
-
-    def endpoint_fields(self, container):
-        """
-        Creates and packs the fields (IP, Port, Login, Password) for the SSH connection
-        details in the provided Tkinter container.
-
-        :param container: The Tkinter container where the fields will be packed.
-        :return: The entry widgets for address, port, login, and password.
-        """
-        tk.Label(container, text="IP", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        address_entry = tk.Entry(container, width=32, bd=2)
-        address_entry.pack(anchor="w", padx=0, pady=(0, 0))
-
-        tk.Label(container, text="Port", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        port_entry = tk.Entry(container, width=32, bd=2)
-        port_entry.pack(anchor="w", padx=0, pady=(0, 0))
-
-        tk.Label(container, text="Login", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        login_entry = tk.Entry(container, width=32, bd=2)
-        login_entry.pack(anchor="w", padx=0, pady=(0, 0))
-
-        tk.Label(container, text="Password", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=0, pady=(0, 0))
-        password_entry = tk.Entry(container, show="*", width=32, bd=2)
-        password_entry.pack(anchor="w", padx=0, pady=(0, 3))
-
-        return address_entry, port_entry, login_entry, password_entry
+            return False, e
+        return False
