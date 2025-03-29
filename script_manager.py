@@ -13,42 +13,43 @@ from interpreters.bash import BashInterpreter
 
 import threading
 
-class ScriptManager(BaseUI):
+class ScriptManager:
     def __init__(self, app):
         self.app = app
+        self.ui = BaseUI(app)
         self.interpreters = {
             "python": PythonInterpreter(),
             "bash": BashInterpreter()
         }
-        self.setup_listbox(self.app.scripts_frame, self.display_script, self.add_script)
+        self.ui.setup_listbox(self.app.scripts_frame, self.display_script, self.add_script)
         self.load_existing_data()
     
     def load_existing_data(self):
         for script in self.app.data["scripts"]:
-            self.listbox.insert(tk.END, script)
+            self.ui.listbox.insert(tk.END, script)
 
     def delete_script(self):
         """Удаляет выбранный скрипт."""
-        selected = self.listbox.curselection()
+        selected = self.ui.listbox.curselection()
         if not selected:
             messagebox.showwarning("Ошибка", "Пожалуйста, выберите скрипт для удаления.")
             return
 
         # Получаем имя скрипта, который нужно удалить
-        script_name = self.listbox.get(selected[0])
+        script_name = self.ui.listbox.get(selected[0])
 
         # Удаляем скрипт из данных
         if script_name in self.app.data["scripts"]:
             del self.app.data["scripts"][script_name]
 
             # Удаляем скрипт из списка в UI
-            self.listbox.delete(selected[0])
+            self.ui.listbox.delete(selected[0])
 
             # Сохраняем обновлённые данные
             save_data(self.app.data)
 
             # Очищаем поле с кодом и возвращаем в начальный экран
-            self.clear_content_frame()
+            self.ui.clear_content_frame()
 
             messagebox.showinfo("Удалено", f"Скрипт '{script_name}' был успешно удалён.")
         else:
@@ -56,8 +57,11 @@ class ScriptManager(BaseUI):
 
     def run_script(self):
         """Запуск скрипта на удалённом сервере по SSH с потоковым выводом и статусом подключения."""
-        interpreter_name = self.interpreter_var.get()
+        name = self.name_entry.get()
+        script = self.app.data["scripts"].get(name)
+        interpreter_name = script["interpreter"]
         script_code = self.script_text.get("1.0", tk.END).strip()
+        options = script["options"]
         endpoint_name = self.endpoint_var.get()
 
         endpoint_data = self.app.data["endpoints"].get(endpoint_name)
@@ -65,7 +69,7 @@ class ScriptManager(BaseUI):
             messagebox.showerror("Ошибка", f"Эндпоинт '{endpoint_name}' не найден.")
             return
 
-        hostname = endpoint_data["address"]
+        hostname = endpoint_data["ip"]
         port = int(endpoint_data["port"])
         username = endpoint_data["login"]
         password = endpoint_data["password"]
@@ -120,7 +124,7 @@ class ScriptManager(BaseUI):
 
                 if interpreter_name in self.interpreters:
                     interpreter = self.interpreters[interpreter_name]
-                    command = interpreter.format_command(script_code)
+                    command = interpreter.format_command(script_code, options)
                 else:
                     command = script_code
 
@@ -197,69 +201,68 @@ class ScriptManager(BaseUI):
 
     def create_script_fields(self, frame, name="", interpreter="python", endpoint=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
-        tk.Label(frame, text="Name", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        self.name_entry = tk.Entry(frame, width=32, bd=2)
-        self.name_entry.insert(0, name)
-        self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
+        self.ui.create_label(frame,"Name")
+        self.name_entry = self.ui.create_entry(frame, name)
 
-        tk.Label(frame, text="Interpreter", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+        self.ui.create_label(frame,"Interpreter")
         self.interpreter_var = tk.StringVar(value=interpreter)
-        interpreter_dropdown = ttk.Combobox(frame, textvariable=self.interpreter_var, values=["python", "bash"], width=30)
-        interpreter_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
+        interpreter_dropdown = self.ui.create_combobox(frame, self.interpreter_var, ["python", "bash"])
 
-        tk.Label(frame, text="Endpoint", font=("Silkscreen", 9), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
+
+        self.ui.create_label(frame,"Endpoint")
         endpoint_names = list(self.app.data["endpoints"].keys())
         self.endpoint_var = tk.StringVar(value=endpoint)
-        endpoint_dropdown = ttk.Combobox(frame, textvariable=self.endpoint_var, values=endpoint_names, width=30)
-        endpoint_dropdown.pack(anchor="w", padx=5, pady=(0, 8))
+        interpreter_dropdown = self.ui.create_combobox(frame, self.endpoint_var, endpoint_names)
 
     def create_code_field(self, code=""):
         """Создаёт текстовое поле с кодом"""
-        tk.Label(self.app.content_frame, text="Code:", font=("Silkscreen", 9), fg="#000080").pack(anchor="w", padx=7)
+        self.ui.create_label(self.app.content_frame,"Code:")
 
         self.script_text = scrolledtext.ScrolledText(self.app.content_frame, height=10, wrap=tk.WORD, font=("Courier", 10))
         self.script_text.insert("1.0", code)
         self.script_text.config(tabs=4)
-        self.script_text.pack(fill=tk.BOTH, expand=True, padx=7, pady=(0, 7))
+        self.script_text.pack(fill=tk.BOTH, expand=True, padx=(0, 0), pady=(0, 0))
 
 
     def add_script(self):
         """Создание нового скрипта."""
-        self.clear_content_frame()
-        container, frame = self.create_form_container()
+        self.ui.clear_content_frame()
+        container, frame = self.ui.create_form_container()
         self.create_script_fields(frame)
 
         def save_script():
             name = self.name_entry.get()
+            interpreter_name = self.interpreter_var.get()
             if name and name not in self.app.data["scripts"]:
                 self.app.data["scripts"][name] = {
-                    "interpreter": self.interpreter_var.get(),
+                    "interpreter": interpreter_name,
                     "endpoint": self.endpoint_var.get(),
-                    "code": self.script_text.get("1.0", tk.END)
+                    "code": self.script_text.get("1.0", tk.END),
+                    "options": self.interpreters[interpreter_name].available_options
                 }
-                self.listbox.insert(tk.END, name)
+                self.ui.listbox.insert(tk.END, name)
                 save_data(self.app.data)
                 save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                delete_btn = self.create_button(button_container, "Delete", self.delete_script)
+                self.ui.create_button(button_container, "Delete", self.delete_script)
                 save_btn.after(2000, lambda: save_btn.config(text="Save"))
 
-        button_container = self.buttons_frame(container)
-        save_btn = self.create_button(button_container, "Save", save_script)
-        cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
-        start_btn = self.create_button(button_container, "Start", self.run_script)
-        opt_btn = self.create_button(button_container, "Options", self.clear_content_frame)
+        button_container = self.ui.buttons_frame(container)
+        save_btn = self.ui.create_button(button_container, "Save", save_script)
+        self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
+        self.ui.create_button(button_container, "Start", self.run_script)
+        self.ui.create_button(button_container, "Options", self.open_options_window)
         self.create_code_field()
 
 
     def display_script(self, event):
         """Отображение информации о выбранном скрипте."""
-        selected = self.listbox.curselection()
+        selected = self.ui.listbox.curselection()
         if selected:
-            name = self.listbox.get(selected[0])
+            name = self.ui.listbox.get(selected[0])
             script_data = self.app.data["scripts"][name]
 
-            self.clear_content_frame()
-            container, frame = self.create_form_container()
+            self.ui.clear_content_frame()
+            container, frame = self.ui.create_form_container()
             self.create_script_fields(frame, name, script_data["interpreter"], script_data["endpoint"])
 
             def save_script():
@@ -272,12 +275,12 @@ class ScriptManager(BaseUI):
 
 
 
-            button_container = self.buttons_frame(container)
-            save_btn = self.create_button(button_container, "Save", save_script)
-            cancel_btn = self.create_button(button_container, "Cancel", self.clear_content_frame)
-            start_btn = self.create_button(button_container, "Start", self.run_script)
-            opt_btn = self.create_button(button_container, "Options", self.clear_content_frame)
-            delete_btn = self.create_button(button_container, "Delete", self.delete_script)
+            button_container = self.ui.buttons_frame(container)
+            save_btn = self.ui.create_button(button_container, "Save", save_script)
+            self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
+            self.ui.create_button(button_container, "Start", self.run_script)
+            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "scripts"))
+            self.ui.create_button(button_container, "Delete", self.delete_script)
 
             self.create_code_field(script_data["code"])
             self.add_syntax_highlighting(self.script_text, script_data["code"], script_data["interpreter"])

@@ -1,47 +1,63 @@
 import psycopg2
-import tkinter as tk
+from psycopg2 import OperationalError
+from typing import Dict, Any, List
+from .base_connector import BaseConnector
 
-class PostgresConnector:
-    def __init__(self, interpreter_args=""):
-        """
-        :param interpreter_args: Аргументы для подключения (по умолчанию "")
-        """
-        self.interpreter_args = interpreter_args
+class PostgresqlConnector(BaseConnector):
+    """
+    Реализация коннектора для PostgreSQL.
+    """
 
-    def test_sql_connection(self, endpoint):
-        """Проверяет соединение с PostgreSQL-эндпоинтом."""
+    def __init__(self) -> None:
+        super().__init__()
+
+    def default_options(self) -> Dict[str, Any]:
+        """
+        Возвращает настройки по умолчанию для PostgreSQL коннектора.
+        """
+        return {
+            "host": "localhost",
+            "port": 5432,
+            "database": "postgres",
+            "user": "postgres",
+            "password": "",
+        }
+
+    def get_required_fields(self) -> List[str]:
+        """
+        Возвращает обязательные поля для подключения к PostgreSQL.
+        """
+        return ["host","port", "database", "user", "password"]
+
+    def connect(self, params: Dict[str, Any]) -> Any:
+        """
+        Устанавливает соединение с базой данных PostgreSQL.
+        
+        :param params: Параметры подключения.
+        :return: Объект соединения psycopg2.
+        """
         try:
-            conn = psycopg2.connect(
-                host=endpoint["address"],
-                port=int(endpoint["port"]),
-                dbname=endpoint["database"],
-                user=endpoint["login"],
-                password=endpoint["password"]
+            connection = psycopg2.connect(
+                host=params["host"],
+                port=params["port"],
+                database=params["database"],
+                user=params["user"],
+                password=params["password"],
             )
-            conn.close()
-            return True
-        except Exception:
-            return False
+            return connection
+        except OperationalError as e:
+            raise ValueError(f"Ошибка при подключении к PostgreSQL: {e}")
 
-    def endpoint_fields(self, container):
-        tk.Label(container, text="Host:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_host_entry = tk.Entry(container)
-        sql_host_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
+    def test_connection(self, params: Dict[str, Any]) -> bool:
+        """
+        Проверяет возможность подключения к PostgreSQL.
 
-        tk.Label(container, text="Port:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_port_entry = tk.Entry(container)
-        sql_port_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(container, text="Database:", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_db_entry = tk.Entry(container)
-        sql_db_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(container, text="User", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_user_entry = tk.Entry(container)
-        sql_user_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        tk.Label(container, text="Password", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sql_password_entry = tk.Entry(container, show="*")
-        sql_password_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        return sql_host_entry, sql_port_entry, sql_db_entry, sql_user_entry, sql_password_entry
+        :param params: Параметры подключения.
+        :return: `True`, если подключение успешно, иначе `False`.
+        """
+        try:
+            connection = self.connect(params)
+            connection.close()  # Закрываем соединение после теста
+            return True, ""
+        except ValueError as e:
+            return False, str(e)
