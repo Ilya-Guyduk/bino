@@ -1,5 +1,7 @@
 # B!NO
 
+![screenshot](docs/Снимок%20экрана%202025-03-26%20214345.png)
+
 **B!NO** is a simple Python application for executing local scripts on remote hosts via SSH. It provides an easy-to-use interface for managing connections and running scripts without manual SSH access.
 
 ## Features
