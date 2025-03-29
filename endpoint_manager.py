@@ -242,7 +242,25 @@ class EndpointManager:
             self.create_endpoint_fields(frame, name=name, conn_type=endpoint_data["type"], endpoint_data=endpoint_data)
 
             def save_changes():
+                new_name = self.name_entry.get()
+                old_name = name
                 endpoint_data["type"] = self.connection_var.get()
+
+                if not new_name:
+                    messagebox.showwarning("Ошибка", "Имя не может быть пустым.")
+                    return
+
+                if new_name != old_name:
+                    if new_name in self.app.data["endpoints"]:
+                        messagebox.showwarning("Ошибка", "Эндпоинт с таким именем уже существует.")
+                        return
+                        
+                    self.app.data["endpoints"][new_name] = self.app.data["endpoints"].pop(old_name)
+                    index = self.ui.listbox.get(0, tk.END).index(old_name)
+                    self.ui.listbox.delete(index)
+                    self.ui.listbox.insert(index, new_name)
+
+                
                 connector = self.connectors.get(endpoint_data["type"])
                 if connector:
                     for field in connector.get_required_fields():
