@@ -266,6 +266,23 @@ class ScriptManager:
             self.create_script_fields(frame, name, script_data["interpreter"], script_data["endpoint"])
 
             def save_script():
+                new_name = self.name_entry.get()
+                old_name = name
+
+                if not new_name:
+                    messagebox.showwarning("Ошибка", "Имя не может быть пустым.")
+                    return
+                
+                if new_name != old_name:
+                    if new_name in self.app.data["scripts"]:
+                        messagebox.showwarning("Ошибка", "Скрипт с таким именем уже существует.")
+                        return
+
+                    self.app.data["scripts"][new_name] = self.app.data["scripts"].pop(old_name)
+                    index = self.ui.listbox.get(0, tk.END).index(old_name)
+                    self.ui.listbox.delete(index)
+                    self.ui.listbox.insert(index, new_name)
+
                 script_data["interpreter"] = self.interpreter_var.get()
                 script_data["endpoint"] = self.endpoint_var.get()
                 script_data["code"] = self.script_text.get("1.0", tk.END)
