@@ -11,50 +11,25 @@ from base_ui import BaseUI
 from interpreters.python import PythonInterpreter
 from interpreters.bash import BashInterpreter
 
+from theme import StyledButton, StyledLabel, StyledEntry, StyledCheckbutton, StyledCombobox, StyledFrame
+from backend import ScriptBackend, FormHandler
+
 import threading
 
-class ScriptManager:
+class ScriptManager(FormHandler):
     def __init__(self, app):
         self.app = app
         self.ui = BaseUI(app)
+        self.backend = ScriptBackend(app)
+        
         self.interpreters = {
             "python": PythonInterpreter(),
             "bash": BashInterpreter()
         }
         self.ui.setup_listbox(self.app.scripts_frame, self.display_script, self.add_script)
-        self.load_existing_data()
+        self.backend.load_existing_data(self.ui)
+        super().__init__(self.ui, self.backend)
     
-    def load_existing_data(self):
-        for script in self.app.data["scripts"]:
-            self.ui.listbox.insert(tk.END, script)
-
-    def delete_script(self):
-        """Удаляет выбранный скрипт."""
-        selected = self.ui.listbox.curselection()
-        if not selected:
-            messagebox.showwarning("Ошибка", "Пожалуйста, выберите скрипт для удаления.")
-            return
-
-        # Получаем имя скрипта, который нужно удалить
-        script_name = self.ui.listbox.get(selected[0])
-
-        # Удаляем скрипт из данных
-        if script_name in self.app.data["scripts"]:
-            del self.app.data["scripts"][script_name]
-
-            # Удаляем скрипт из списка в UI
-            self.ui.listbox.delete(selected[0])
-
-            # Сохраняем обновлённые данные
-            save_data(self.app.data)
-
-            # Очищаем поле с кодом и возвращаем в начальный экран
-            self.ui.clear_content_frame()
-
-            messagebox.showinfo("Удалено", f"Скрипт '{script_name}' был успешно удалён.")
-        else:
-            messagebox.showwarning("Ошибка", f"Скрипт '{script_name}' не найден.")
-
     def run_script(self):
         """Запуск скрипта на удалённом сервере по SSH с потоковым выводом и статусом подключения."""
         name = self.name_entry.get()
@@ -199,7 +174,7 @@ class ScriptManager:
         # Отключаем редактирование (если нужно)
         #text_widget.config(state=tk.DISABLED)
 
-    def create_script_fields(self, frame, name="", interpreter="python", endpoint=""):
+    def create_script_fields(self, frame, name="", interpreter="python", endpoint="", code="", options=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
         self.ui.create_label(frame,"Name")
         self.name_entry = self.ui.create_entry(frame, name)
@@ -226,80 +201,15 @@ class ScriptManager:
 
     def add_script(self):
         """Создание нового скрипта."""
-        self.ui.clear_content_frame()
-        container, frame = self.ui.create_form_container()
-        self.create_script_fields(frame)
-
-        def save_script():
-            name = self.name_entry.get()
-            interpreter_name = self.interpreter_var.get()
-            if name and name not in self.app.data["scripts"]:
-                self.app.data["scripts"][name] = {
-                    "interpreter": interpreter_name,
-                    "endpoint": self.endpoint_var.get(),
-                    "code": self.script_text.get("1.0", tk.END),
-                    "options": self.interpreters[interpreter_name].available_options
-                }
-                self.ui.listbox.insert(tk.END, name)
-                save_data(self.app.data)
-                save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                self.ui.create_button(button_container, "Delete", self.delete_script)
-                save_btn.after(2000, lambda: save_btn.config(text="Save"))
-
-        button_container = self.ui.buttons_frame(container)
-        save_btn = self.ui.create_button(button_container, "Save", save_script)
-        self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
-        self.ui.create_button(button_container, "Start", self.run_script)
-        self.ui.create_button(button_container, "Options", self.open_options_window)
-        self.create_code_field()
+        self.create_form_and_save("script", self.create_script_fields, self.backend.save_script)
 
 
     def display_script(self, event):
         """Отображение информации о выбранном скрипте."""
-        selected = self.ui.listbox.curselection()
-        if selected:
-            name = self.ui.listbox.get(selected[0])
-            script_data = self.app.data["scripts"][name]
-
-            self.ui.clear_content_frame()
-            container, frame = self.ui.create_form_container()
-            self.create_script_fields(frame, name, script_data["interpreter"], script_data["endpoint"])
-
-            def save_script():
-                new_name = self.name_entry.get()
-                old_name = name
-
-                if not new_name:
-                    messagebox.showwarning("Ошибка", "Имя не может быть пустым.")
-                    return
-                
-                if new_name != old_name:
-                    if new_name in self.app.data["scripts"]:
-                        messagebox.showwarning("Ошибка", "Скрипт с таким именем уже существует.")
-                        return
-
-                    self.app.data["scripts"][new_name] = self.app.data["scripts"].pop(old_name)
-                    index = self.ui.listbox.get(0, tk.END).index(old_name)
-                    self.ui.listbox.delete(index)
-                    self.ui.listbox.insert(index, new_name)
-
-                script_data["interpreter"] = self.interpreter_var.get()
-                script_data["endpoint"] = self.endpoint_var.get()
-                script_data["code"] = self.script_text.get("1.0", tk.END)
-                save_data(self.app.data)
-                save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                save_btn.after(2000, lambda: save_btn.config(text="Save"))
-
-
-
-            button_container = self.ui.buttons_frame(container)
-            save_btn = self.ui.create_button(button_container, "Save", save_script)
-            self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
-            self.ui.create_button(button_container, "Start", self.run_script)
-            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "scripts"))
-            self.ui.create_button(button_container, "Delete", self.delete_script)
-
-            self.create_code_field(script_data["code"])
-            self.add_syntax_highlighting(self.script_text, script_data["code"], script_data["interpreter"])
-
-
+        self.display_and_edit(
+            "scripts", 
+            self.create_script_fields, 
+            self.backend.save_script, 
+            self.backend.delete_script, 
+            self.ui.open_options_window
+        )

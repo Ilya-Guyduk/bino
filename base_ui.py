@@ -60,6 +60,8 @@ class BaseUI:
         self.add_button = self.create_button(container, "Add", add_button_command)
         self.add_button.pack(fill=tk.X)
 
+        return self.listbox
+
     def init_font(self):
         font_path = "fonts/Silkscreen-Regular.ttf"
 
@@ -155,11 +157,6 @@ class BaseUI:
         logo_label.pack(side=tk.RIGHT, anchor="ne", padx=5)
 
         return container, frame
-
-    def clear_content_frame(self):
-        """Очистка основного контентного фрейма."""
-        for widget in self.app.content_frame.winfo_children():
-            widget.destroy()
 
     def buttons_frame(self, container):
         buttons_frame = tk.Frame(container, bg=container.cget('bg'))

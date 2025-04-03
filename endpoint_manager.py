@@ -11,40 +11,28 @@ import importlib
 from storage import save_data
 from base_ui import BaseUI
 from config import FEATURE_FLAGS
+from theme import StyledButton, StyledLabel, StyledEntry, StyledCheckbutton, StyledCombobox, StyledFrame
+from backend import EndpointBackend, FormHandler
 
-class EndpointManager:
+class EndpointManager(FormHandler):
     """docstring"""
     def __init__(self, app):
         self.app = app
         self.ui = BaseUI(app)
-        self.connectors = self.load_connectors()
-
+        self.backend = EndpointBackend(app)
+        self.connectors = self.backend.load_connectors()
         self.listbox = self.ui.setup_listbox(self.app.endpoints_frame, self.display_endpoint, self.add_endpoint)
-        self.load_existing_data()
-
-    def load_connectors(self):
-        """Загружает все коннекторы из каталога 'connectors'."""
-        connectors = {}
-        connectors_dir = os.path.join(os.path.dirname(__file__), 'connectors')
-
-        for file in os.listdir(connectors_dir):
-            if file.endswith('.py') and file != '__init__.py':
-                module_name = file[:-3]
-                module = importlib.import_module(f'connectors.{module_name}')
-                # Пытаемся получить класс коннектора по имени файла
-                connector_class = getattr(module, module_name.capitalize() + 'Connector', None)
-                if connector_class:
-                    connectors[module_name] = connector_class()
-        return connectors
+        self.backend.load_existing_data(self.ui)
+        super().__init__(self.ui, self.backend)
 
     def test_connection(self):
         """Проверка соединения с эндпоинтом с потоковым выводом статуса."""
-        selected = self.ui.listbox.curselection()
+        selected = self.listbox.curselection()
         if not selected:
             messagebox.showwarning("Ошибка", "Выберите эндпоинт для тестирования.")
             return
 
-        endpoint_name = self.ui.listbox.get(selected[0])
+        endpoint_name = self.listbox.get(selected[0])
         endpoint_data = self.app.data["endpoints"].get(endpoint_name)
         if not endpoint_data:
             messagebox.showerror("Ошибка", "Не найдено данных для эндпоинта.")
@@ -73,13 +61,13 @@ class EndpointManager:
         text_widget.pack(fill="both", expand=True, padx=10, pady=10)
         text_widget.config(state="disabled")
 
-        close_button = tk.Button(result_window, text="Закрыть", command=result_window.destroy)
+        close_button = StyledButton(result_window, text="Закрыть", command=result_window.destroy)
         close_button.pack(pady=5)
 
-        status_frame = tk.Frame(result_window)
+        status_frame = StyledFrame(result_window)
         status_frame.pack(pady=5)
 
-        status_label = tk.Label(status_frame, text="Connecting...", font=("Silkscreen", 9))
+        status_label = StyledLabel(status_frame, text="Connecting...")
         status_label.pack(side="left")
 
         status_icon = tk.Canvas(status_frame, width=20, height=20, highlightthickness=0)
@@ -125,50 +113,29 @@ class EndpointManager:
         animate_spinner()
         threading.Thread(target=check_connection, daemon=True).start()
 
-    def delete_endpoint(self):
-        """Удаляет выбранный скрипт."""
-        selected = self.ui.listbox.curselection()
-        
-        if not selected:
-            messagebox.showwarning("Ошибка", "Пожалуйста, выберите эндпоинт для удаления.")
-            return
 
-        # Получаем имя скрипта, который нужно удалить
-        endpoint_name = self.ui.listbox.get(selected[0])
-        # Удаляем скрипт из данных
-        if endpoint_name in self.app.data["endpoints"]:
-            del self.app.data["endpoints"][endpoint_name]
-            # Удаляем скрипт из списка в UI
-            self.ui.listbox.delete(selected[0])
-            # Сохраняем обновлённые данные
-            save_data(self.app.data)
-            # Очищаем поле с кодом и возвращаем в начальный экран
-            self.ui.clear_content_frame()
-            messagebox.showinfo("Удалено", f"Скрипт '{endpoint_name}' был успешно удалён.")
-        else:
-            messagebox.showwarning("Ошибка", f"Скрипт '{endpoint_name}' не найден.")
-
-    def load_existing_data(self):
-        """docstring"""
-        for endpoint in self.app.data["endpoints"]:
-            self.ui.listbox.insert(tk.END, endpoint)
-
-    def create_endpoint_fields(self, frame, name="", conn_type="ssh", endpoint_data=None):
+    def create_endpoint_fields(self, frame, name="", type="ssh", **endpoint_data):
         """Добавляет поля формы для создания или редактирования эндпоинта."""
-        self.ui.create_label(frame, "Name")
-        self.name_entry = self.ui.create_entry(frame, name)
 
-        self.ui.create_label(frame, "Type")
+        name_label = StyledLabel(frame, text="Name")
+        name_label.pack(anchor="w", padx=4, pady=(0, 0))
+
+        self.name_entry = StyledEntry(frame)
+        self.name_entry.insert(0, name)
+        self.name_entry.pack(anchor="w", padx=5, pady=(0, 0))
+
+        name_label = StyledLabel(frame, text="Type")
+        name_label.pack(anchor="w", padx=4, pady=(0, 0))
         connection_types = list(self.connectors.keys())
-        self.connection_var = tk.StringVar(value=conn_type)
-        connection_dropdown = ttk.Combobox(frame, textvariable=self.connection_var, values=connection_types, width=30)
+        self.connection_var = tk.StringVar(value=type)
+        connection_dropdown = StyledCombobox(frame, textvariable=self.connection_var, values=connection_types)
         connection_dropdown.pack(anchor="w", padx=5, pady=(0, 0))
 
         # Создаём фрейм для выбранного коннектора
-        self.connector_frame = tk.Frame(frame, borderwidth=2, bg=frame.cget('bg'))
+        self.connector_frame = StyledFrame(frame)
         self.connector_frame.pack(anchor="w", padx=(0, 0), pady=(0, 10))
 
-        self._update_fields(conn_type, endpoint_data)
+        self._update_fields(type, endpoint_data)
 
         # Функция переключения фреймов при изменении типа соединения
         def update_fields(*args):
@@ -188,90 +155,42 @@ class EndpointManager:
             required_fields = connector.get_required_fields()
             endpoint_data = endpoint_data or {}
             for field in required_fields:
-                self.ui.create_label(self.connector_frame, field)
+                name_label = StyledLabel(self.connector_frame, text=field)
+                name_label.pack(anchor="w", padx=4, pady=(0, 0))
                 if field.lower() == "password":
-                    entry = self.ui.create_entry(self.connector_frame, endpoint_data.get(field.lower(), ""), show="*")
+                    entry = StyledEntry(self.connector_frame, show="*")
+                    entry.insert(0, endpoint_data.get(field.lower(), ""))
+                    entry.pack(anchor="w", padx=5, pady=(0, 0))
+
                 else:
-                    entry = self.ui.create_entry(self.connector_frame, endpoint_data.get(field.lower(), ""))
+                    entry = StyledEntry(self.connector_frame)
+                    entry.insert(0, endpoint_data.get(field.lower(), ""))
+                    entry.pack(anchor="w", padx=5, pady=(0, 0))
                 
                 setattr(self, f"{field.lower()}_entry", entry)
 
 
     def add_endpoint(self):
         """Добавляет новый эндпоинт."""
-        self.ui.clear_content_frame()
-        container, frame = self.ui.create_form_container()
-        self.create_endpoint_fields(frame)
-
-        def save_endpoint():
-            name = self.name_entry.get()
-            connection_type = self.connection_var.get()
-
-            if not name or not connection_type:
-                return  # Не сохраняем, если нет имени или типа подключения
-
-            if name and name not in self.app.data["endpoints"]:
-                endpoint_data = {
-                    "type": connection_type,
-                    **{field: getattr(self, f"{field.lower()}_entry").get() for field in self.connectors[connection_type].get_required_fields()}
-                }
-                self.app.data["endpoints"][name] = endpoint_data
-
-            self.ui.listbox.insert(tk.END, name)
-            save_data(self.app.data)
-            save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-            self.ui.create_button(button_container, "Delete", self.delete_endpoint)
-            save_btn.after(2000, lambda: save_btn.config(text="Save"))
-
-        button_container = self.ui.buttons_frame(container)
-        save_btn = self.ui.create_button(button_container, "Save", save_endpoint)
-        self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
-        self.ui.create_button(button_container, "Test", self.test_connection)
-        self.ui.create_button(button_container, "Options", self.ui.open_options_window)
+        self.create_form_and_save("endpoint", self.create_endpoint_fields, self.backend.save_endpoint)
 
     def display_endpoint(self, event):
-        """Отображает информацию о выбранном эндпоинте."""
-        selected = self.ui.listbox.curselection()
-        if selected:
-            name = self.ui.listbox.get(selected[0])
-            endpoint_data = self.app.data["endpoints"][name]
+        """Отображение информации о выбранном эндпоинте."""
+        self.display_and_edit(
+            "endpoints", 
+            self.create_endpoint_fields, 
+            self.backend.save_endpoint, 
+            self.backend.delete_endpoint, 
+            self.ui.open_options_window,
+            self.update_endpoint_fields
+        )
 
-            self.ui.clear_content_frame()
-            container, frame = self.ui.create_form_container()
-
-            self.create_endpoint_fields(frame, name=name, conn_type=endpoint_data["type"], endpoint_data=endpoint_data)
-
-            def save_changes():
-                new_name = self.name_entry.get()
-                old_name = name
-                endpoint_data["type"] = self.connection_var.get()
-
-                if not new_name:
-                    messagebox.showwarning("Ошибка", "Имя не может быть пустым.")
-                    return
-
-                if new_name != old_name:
-                    if new_name in self.app.data["endpoints"]:
-                        messagebox.showwarning("Ошибка", "Эндпоинт с таким именем уже существует.")
-                        return
-                        
-                    self.app.data["endpoints"][new_name] = self.app.data["endpoints"].pop(old_name)
-                    index = self.ui.listbox.get(0, tk.END).index(old_name)
-                    self.ui.listbox.delete(index)
-                    self.ui.listbox.insert(index, new_name)
-
-                
-                connector = self.connectors.get(endpoint_data["type"])
-                if connector:
-                    for field in connector.get_required_fields():
-                        endpoint_data[field] = getattr(self, f"{field.lower()}_entry").get()
-                save_data(self.app.data)
-                save_btn.config(text="Saved")
-                save_btn.after(2000, lambda: save_btn.config(text="Save"))
-
-            button_container = self.ui.buttons_frame(container)
-            save_btn = self.ui.create_button(button_container, "Save", save_changes)
-            self.ui.create_button(button_container, "Cancel", self.ui.clear_content_frame)
-            self.ui.create_button(button_container, "Test", self.test_connection)
-            self.ui.create_button(button_container, "Options", lambda: self.ui.open_options_window(name, "endpoints"))
-            self.ui.create_button(button_container, "Delete", self.delete_endpoint)
+    def update_endpoint_fields(self, endpoint_data, key):
+        """Обновление специфичных для эндпоинтов полей."""
+        if key == "type":
+            endpoint_data[key] = self.connection_var.get()
+        elif key != "type":
+            # Обновляем поля, связанные с конкретным типом соединения
+            connector = self.connectors.get(endpoint_data["type"])
+            if connector:
+                endpoint_data[key] = getattr(self, f"{key.lower()}_entry").get()
