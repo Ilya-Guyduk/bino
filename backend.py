@@ -14,12 +14,43 @@ class FormHandler:
         self.ui = ui
         self.backend = backend
 
+    def create_frame(self, create_fields_func, **item_data):
+        self.backend.clear_content_frame()
+        container, frame = self.ui.create_form_container()
+        create_fields_func(frame, **item_data)
+        return container, frame
+
+    def create_button_frame(self, data_type, container, save_data, delete=None):
+
+        button_container = StyledFrame(container)
+        button_container.grid(row=0, column=1, sticky="ne")
+
+        save_btn = StyledButton(button_container, text="Save", command=save_data)
+        save_btn.pack(fill="x", pady=(2, 0))
+        cancel_btn = StyledButton(button_container, text="Cancel", command=self.backend.clear_content_frame)
+        cancel_btn.pack(fill="x", pady=(2, 0))
+
+        if data_type == "scripts":
+            run_btn = StyledButton(button_container, text="Start", command=self.run_script)
+            run_btn.pack(fill="x", pady=(2, 0))
+        elif data_type == "endpoints":
+            test_btn = StyledButton(button_container, text="Test", command=self.test_connection)
+            test_btn.pack(fill="x", pady=(2, 0))
+
+        opt_btn = StyledButton(button_container, text="Options", command=self.ui.open_options_window)
+        opt_btn.pack(fill="x", pady=(2, 0))
+
+        if delete:
+            del_btn = StyledButton(button_container, text="Delete", command=lambda: delete(self.ui))
+            del_btn.pack(fill="x", pady=(2, 0))
+
+        return save_btn, button_container
+
+
     def create_form_and_save(self, data_type, create_fields_func, save_func):
         """Создает форму и обрабатывает сохранение данных для скрипта или эндпоинта."""
 
-        self.backend.clear_content_frame()
-        container, frame = self.ui.create_form_container()
-        create_fields_func(frame)  # Вызываем функцию для создания полей
+        container, frame = self.create_frame(create_fields_func)
 
         def save_data():
             """Обработка сохранения данных."""
@@ -34,36 +65,20 @@ class FormHandler:
                 messagebox.showwarning("Ошибка", message)
 
         # Создание кнопок
-        button_container = StyledFrame(container)
-        button_container.grid(row=0, column=1, sticky="ne")
+        save_btn, button_container = self.create_button_frame(data_type, container, save_data)
 
-        save_btn = StyledButton(button_container, text="Save", command=save_data)
-        save_btn.pack(fill="x", pady=(2, 0))
-        cancel_btn = StyledButton(button_container, text="Cancel", command=self.backend.clear_content_frame)
-        cancel_btn.pack(fill="x", pady=(2, 0))
-
-        if data_type == "script":
-            run_btn = StyledButton(button_container, text="Start", command=self.run_script)
-            run_btn.pack(fill="x", pady=(2, 0))
-        elif data_type == "endpoint":
-            test_btn = StyledButton(button_container, text="Test", command=self.test_connection)
-            test_btn.pack(fill="x", pady=(2, 0))
-
-        opt_btn = StyledButton(button_container, text="Options", command=self.ui.open_options_window)
-        opt_btn.pack(fill="x", pady=(2, 0))
-
-        self.create_code_field() if data_type == "script" else None
+        self.create_code_field() if data_type == "scripts" else None
 
     def collect_data(self, data_type):
         """Собирает данные в зависимости от типа (скрипт или эндпоинт)."""
-        if data_type == "script":
+        if data_type == "scripts":
             return {
                 "name": self.name_entry.get(),
                 "interpreter": self.interpreter_var.get(),
                 "endpoint": self.endpoint_var.get(),
                 "code": self.script_text.get("1.0", tk.END)
             }
-        elif data_type == "endpoint":
+        elif data_type == "endpoints":
             connection_type = self.connection_var.get()
             return {
                 "name": self.name_entry.get(),
@@ -79,9 +94,10 @@ class FormHandler:
             name = self.ui.listbox.get(selected[0])
             item_data = self.app.data[data_type][name]
 
-            self.backend.clear_content_frame()
-            container, frame = self.ui.create_form_container()
-            create_fields_func(frame, **item_data)
+            container, frame = self.create_frame(create_fields_func, **item_data)
+            if data_type == "scripts":
+                self.create_code_field(item_data.get("code", ""))
+                self.add_syntax_highlighting(self.script_text, item_data.get("code", ""), item_data.get("interpreter", ""))
 
             def save_changes():
                 """Обработка сохранения изменений."""
@@ -114,14 +130,8 @@ class FormHandler:
                 save_btn.after(2000, lambda: save_btn.config(text="Save"))
 
             # Создание кнопок
-            button_container = self.ui.buttons_frame(container)
-            save_btn = self.ui.create_button(button_container, "Save", save_changes)
-            self.ui.create_button(button_container, "Cancel", self.backend.clear_content_frame)
-            self.ui.create_button(button_container, "Options", lambda: open_options_func(name, data_type))
-            self.ui.create_button(button_container, "Delete", lambda: delete_func(self.ui))
-            if data_type == "script":
-                self.create_code_field(item_data.get("code", ""))
-                self.add_syntax_highlighting(self.script_text, item_data.get("code", ""), item_data.get("interpreter", ""))
+            save_btn, button_container = self.create_button_frame(data_type, container, save_data, delete_func)
+            
 
 
 
@@ -302,6 +312,7 @@ class ScriptBackend:
 
         if name and name not in self.app.data["scripts"]:
             self.app.data["scripts"][name] = {
+                "name": name,
                 "interpreter": interpreter_name,
                 "endpoint": endpoint_name,
                 "code": script_data["code"],

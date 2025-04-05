@@ -172,7 +172,7 @@ class EndpointManager(FormHandler):
 
     def add_endpoint(self):
         """Добавляет новый эндпоинт."""
-        self.create_form_and_save("endpoint", self.create_endpoint_fields, self.backend.save_endpoint)
+        self.create_form_and_save("endpoints", self.create_endpoint_fields, self.backend.save_endpoint)
 
     def display_endpoint(self, event):
         """Отображение информации о выбранном эндпоинте."""

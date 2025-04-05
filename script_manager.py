@@ -201,7 +201,7 @@ class ScriptManager(FormHandler):
 
     def add_script(self):
         """Создание нового скрипта."""
-        self.create_form_and_save("script", self.create_script_fields, self.backend.save_script)
+        self.create_form_and_save("scripts", self.create_script_fields, self.backend.save_script)
 
 
     def display_script(self, event):
