@@ -3,6 +3,7 @@ import importlib
 import paramiko
 import threading
 import tkinter as tk
+from tkinter import messagebox
 from storage import save_data
 from interpreters.python import PythonInterpreter
 from interpreters.bash import BashInterpreter
@@ -20,28 +21,28 @@ class FormHandler:
         create_fields_func(frame, **item_data)
         return container, frame
 
-    def create_button_frame(self, data_type, container, save_data, delete=None):
+    def create_button_frame(self, data_type, container, save_func, delete_func=None):
 
         button_container = StyledFrame(container)
         button_container.grid(row=0, column=1, sticky="ne")
 
-        save_btn = StyledButton(button_container, text="Save", command=save_data)
+        save_btn = StyledButton(button_container, text="💾 Save", command=save_func)
         save_btn.pack(fill="x", pady=(2, 0))
-        cancel_btn = StyledButton(button_container, text="Cancel", command=self.backend.clear_content_frame)
+        cancel_btn = StyledButton(button_container, text="⬅️ Cancel", command=self.backend.clear_content_frame)
         cancel_btn.pack(fill="x", pady=(2, 0))
 
         if data_type == "scripts":
-            run_btn = StyledButton(button_container, text="Start", command=self.run_script)
+            run_btn = StyledButton(button_container, text="🚀 Start", command=self.run_script)
             run_btn.pack(fill="x", pady=(2, 0))
         elif data_type == "endpoints":
-            test_btn = StyledButton(button_container, text="Test", command=self.test_connection)
+            test_btn = StyledButton(button_container, text="🚀 Test", command=self.test_connection)
             test_btn.pack(fill="x", pady=(2, 0))
 
-        opt_btn = StyledButton(button_container, text="Options", command=self.ui.open_options_window)
+        opt_btn = StyledButton(button_container, text="⚙️ Options", command=lambda: self.ui.open_options_window(data_type))
         opt_btn.pack(fill="x", pady=(2, 0))
 
-        if delete:
-            del_btn = StyledButton(button_container, text="Delete", command=lambda: delete(self.ui))
+        if delete_func:
+            del_btn = StyledButton(button_container, text="❌ Delete", command=lambda: delete_func(self.ui))
             del_btn.pack(fill="x", pady=(2, 0))
 
         return save_btn, button_container
@@ -52,20 +53,21 @@ class FormHandler:
 
         container, frame = self.create_frame(create_fields_func)
 
-        def save_data():
+        def save():
             """Обработка сохранения данных."""
             data = self.collect_data(data_type)  # Собираем данные
-            success, message = save_func(self.ui, data)  # Вызываем соответствующий метод сохранения
+            success, message = save_func(self.ui,"",data)  # Вызываем соответствующий метод сохранения
 
             if success:
                 save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                self.ui.create_button(button_container, "Delete", lambda: self.backend.delete(data_type, self.ui))
+                StyledButton(button_container, text="❌ Delete", command=lambda: self.backend.delete(data_type, self.ui))
                 save_btn.after(2000, lambda: save_btn.config(text="Save"))
+                messagebox.showwarning("Заебок!", message)
             else:
                 messagebox.showwarning("Ошибка", message)
 
         # Создание кнопок
-        save_btn, button_container = self.create_button_frame(data_type, container, save_data)
+        save_btn, button_container = self.create_button_frame(data_type, container, save)
 
         self.create_code_field() if data_type == "scripts" else None
 
@@ -74,7 +76,7 @@ class FormHandler:
         if data_type == "scripts":
             return {
                 "name": self.name_entry.get(),
-                "interpreter": self.interpreter_var.get(),
+                "interpreter": self.interpreter_entry.get(),
                 "endpoint": self.endpoint_var.get(),
                 "code": self.script_text.get("1.0", tk.END)
             }
@@ -98,39 +100,26 @@ class FormHandler:
             if data_type == "scripts":
                 self.create_code_field(item_data.get("code", ""))
                 self.add_syntax_highlighting(self.script_text, item_data.get("code", ""), item_data.get("interpreter", ""))
-
+            old_data = self.collect_data(data_type)
             def save_changes():
                 """Обработка сохранения изменений."""
                 new_name = self.name_entry.get()
                 old_name = name
 
-                if not new_name:
-                    messagebox.showwarning("Ошибка", "Имя не может быть пустым.")
-                    return
-
-                if new_name != old_name:
-                    if new_name in self.app.data[data_type]:
-                        messagebox.showwarning("Ошибка", f"{data_type.capitalize()} с таким именем уже существует.")
-                        return
-
-                    # Обновление имени в данных
-                    self.app.data[data_type][new_name] = self.app.data[data_type].pop(old_name)
-                    index = self.ui.listbox.get(0, tk.END).index(old_name)
-                    self.ui.listbox.delete(index)
-                    self.ui.listbox.insert(index, new_name)
-
+                data = self.collect_data(data_type)
+                print(data)
+                print(save_func)
+                success, message = save_func(self.ui, name, data)
                 # Собираем данные для сохранения
-                for key, value in item_data.items():
-                    if additional_fields_func:
-                        additional_fields_func(item_data, key)
-                    item_data[key] = getattr(self, f"{key.lower()}_entry").get()
-
-                save_data(self.app.data)
-                save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                save_btn.after(2000, lambda: save_btn.config(text="Save"))
+                if success:
+                    save_btn.config(text="Saved", bg="gray80")
+                    save_btn.after(2000, lambda: save_btn.config(text="Save"))
+                    messagebox.showwarning("Заебок!", message)
+                else:
+                    messagebox.showwarning("Ошибка", message)
 
             # Создание кнопок
-            save_btn, button_container = self.create_button_frame(data_type, container, save_data, delete_func)
+            save_btn, button_container = self.create_button_frame(data_type, container, save_changes, delete_func)
             
 
 
@@ -187,14 +176,44 @@ class EndpointBackend:
         except Exception as e:
             return False, f"Ошибка: {e}"
 
-    def save_endpoint(self, ui, endpoint_data):
+    def save_object(self, ui, old_name, endpoint_data):
         """Сохраняет новый или отредактированный эндпоинт."""
-        name = endpoint_data.get("name")
-        if name and name not in self.app.data["endpoints"]:
-            self.app.data["endpoints"][name] = endpoint_data
-            ui.listbox.insert(tk.END, name)
+
+        new_name = endpoint_data.get("name")
+        if not new_name:
+            return False, "Имя не может быть пустым."
+
+        endpoints = self.app.data["endpoints"]
+        list_items = ui.listbox.get(0, tk.END)
+
+        # Обновление существующего
+        if old_name:
+            if old_name != new_name:
+                if new_name in endpoints:
+                    return False, f"Эндпоинт с именем '{new_name}' уже существует."
+                if old_name in endpoints:
+                    del endpoints[old_name]
+                endpoints[new_name] = endpoint_data
+
+                if old_name in list_items:
+                    index = list_items.index(old_name)
+                    ui.listbox.delete(index)
+                    ui.listbox.insert(index, new_name)
+            else:
+                endpoints[new_name] = endpoint_data
             save_data(self.app.data)
-            return True, f"Скрипт '{name}' успешно сохранён."
+            return True, f"Эндпоинт '{new_name}' успешно сохранён."
+
+        # Добавление нового
+        if new_name not in endpoints:
+            endpoints[new_name] = endpoint_data
+            ui.listbox.insert(tk.END, new_name)
+            save_data(self.app.data)
+            return True, f"Эндпоинт '{new_name}' успешно добавлен."
+
+        return False, f"Эндпоинт с именем '{new_name}' уже существует."
+
+
 
     def delete_endpoint(self, ui):
         """Удаляет эндпоинт."""
@@ -304,7 +323,7 @@ class ScriptBackend:
         animate_spinner()
         threading.Thread(target=execute_script, daemon=True).start()
 
-    def save_script(self, ui, script_data):
+    def save_object(self, ui, name, script_data):
         """Создание нового скрипта."""
         name = script_data.get("name")
         interpreter_name = script_data.get("interpreter")

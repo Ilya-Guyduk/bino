@@ -176,22 +176,26 @@ class ScriptManager(FormHandler):
 
     def create_script_fields(self, frame, name="", interpreter="python", endpoint="", code="", options=""):
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
-        self.ui.create_label(frame,"Name")
+        label_name = StyledLabel(frame, text="Name")
+        label_name.pack(anchor="w", padx=4, pady=(0, 0))
         self.name_entry = self.ui.create_entry(frame, name)
 
-        self.ui.create_label(frame,"Interpreter")
-        self.interpreter_var = tk.StringVar(value=interpreter)
-        interpreter_dropdown = self.ui.create_combobox(frame, self.interpreter_var, ["python", "bash"])
+        label_interpreter = StyledLabel(frame, text="Interpreter")
+        label_interpreter.pack(anchor="w", padx=4, pady=(0, 0))
+        self.interpreter_entry = tk.StringVar(value=interpreter)
+        interpreter_dropdown = self.ui.create_combobox(frame, self.interpreter_entry, ["python", "bash"])
 
 
-        self.ui.create_label(frame,"Endpoint")
+        label_endpoint = StyledLabel(frame, text="Endpoint")
+        label_endpoint.pack(anchor="w", padx=4, pady=(0, 0))
         endpoint_names = list(self.app.data["endpoints"].keys())
         self.endpoint_var = tk.StringVar(value=endpoint)
         interpreter_dropdown = self.ui.create_combobox(frame, self.endpoint_var, endpoint_names)
 
     def create_code_field(self, code=""):
         """Создаёт текстовое поле с кодом"""
-        self.ui.create_label(self.app.content_frame,"Code:")
+        label = StyledLabel(self.app.content_frame, text="Code:")
+        label.pack(anchor="w", padx=4, pady=(0, 0))
 
         self.script_text = scrolledtext.ScrolledText(self.app.content_frame, height=10, wrap=tk.WORD, font=("Courier", 10))
         self.script_text.insert("1.0", code)
@@ -201,7 +205,7 @@ class ScriptManager(FormHandler):
 
     def add_script(self):
         """Создание нового скрипта."""
-        self.create_form_and_save("scripts", self.create_script_fields, self.backend.save_script)
+        self.create_form_and_save("scripts", self.create_script_fields, self.backend.save_object)
 
 
     def display_script(self, event):
@@ -209,7 +213,7 @@ class ScriptManager(FormHandler):
         self.display_and_edit(
             "scripts", 
             self.create_script_fields, 
-            self.backend.save_script, 
+            self.backend.save_object, 
             self.backend.delete_script, 
             self.ui.open_options_window
         )
