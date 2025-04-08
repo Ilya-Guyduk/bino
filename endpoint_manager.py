@@ -76,7 +76,7 @@ class EndpointManager(FormHandler):
         def update_output(text):
             """Обновляет вывод в текстовом поле."""
             text_widget.config(state="normal")
-            text_widget.insert("end", text + "\n")
+            text_widget.insert("end", str(text) + "\n")
             text_widget.see("end")
             text_widget.config(state="disabled")
 
@@ -97,7 +97,7 @@ class EndpointManager(FormHandler):
                     self.app.root.after(0, lambda: status_label.config(text="Connected"))
                     self.app.root.after(0, lambda: status_icon.delete("all"))
                     self.app.root.after(0, lambda: status_icon.create_text(10, 10, text="✔", font=("Arial", 14), fill="green"))
-                    self.app.root.after(0, lambda: update_output("Соединение успешно установлено!"))
+                    self.app.root.after(0, lambda: update_output(test_result))
                 else:
                     self.app.root.after(0, lambda: update_output(test_result))
                     self.app.root.after(0, lambda: status_label.config(text="Failed"))

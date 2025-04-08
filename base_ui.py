@@ -8,7 +8,7 @@ import os
 
 from storage import save_data
 from config import VERSION
-from theme import StyledButton
+from theme import StyledButton, StyledLabel, StyledEntry
 from interpreters.python import PythonInterpreter
 from interpreters.bash import BashInterpreter
 from connectors.ssh import SshConnector
@@ -114,13 +114,13 @@ class BaseUI:
                 chk = self.create_checkbutton(frame, text=f"{option} - {opt_desc}", variable=var)
             elif opt_type == int:
                 var = tk.IntVar(value=opt_value)
-                label = self.create_label(frame, option + " - " + opt_desc)
+                label = StyledLabel(frame, text=f"{option} - {opt_desc}")
                 label.pack(anchor="w")
                 entry = self.create_entry(frame, name="", textvariable=var)  # Привязываем переменную к Entry
                 entry.pack(anchor="w")
             elif opt_type == str:
                 var = tk.StringVar(value=opt_value)
-                label = self.create_label(frame, option + " - " + opt_desc)
+                label = StyledLabel(frame, text=f"{option} - {opt_desc}")
                 label.pack(anchor="w")
                 entry = self.create_entry(frame, name="", textvariable=var)  # Привязываем переменную к Entry
                 entry.pack(anchor="w")

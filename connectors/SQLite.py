@@ -1,25 +1,71 @@
 import sqlite3
-import tkinter as tk
+from typing import Dict, Any, List, Tuple
+from .base_connector import BaseConnector
 
-class SQLiteConnector:
-    def __init__(self, interpreter_args=""):
-        """
-        :param interpreter_args: Аргументы для подключения (по умолчанию "")
-        """
-        self.interpreter_args = interpreter_args
 
-    def test_sql_connection(self, endpoint):
-        """Проверяет соединение с SQLite-эндпоинтом."""
+class SqliteConnector(BaseConnector):
+    """
+    Коннектор для подключения к базе данных SQLite.
+    """
+
+    def default_options(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Возвращает настройки по умолчанию для SQLite-коннектора.
+        """
+        return {
+            "timeout": {
+                "type": float,
+                "description": "Таймаут соединения с базой (в секундах)",
+                "value": 5.0
+            },
+            "detect_types": {
+                "type": int,
+                "description": "Режим определения типов (обычно 0 или sqlite3.PARSE_DECLTYPES)",
+                "value": 0
+            },
+            "isolation_level": {
+                "type": str,
+                "description": "Уровень изоляции транзакций (например, 'DEFERRED', 'IMMEDIATE', 'EXCLUSIVE')",
+                "value": None
+            },
+            "check_same_thread": {
+                "type": bool,
+                "description": "Разрешить использование соединения в разных потоках",
+                "value": True
+            }
+        }
+
+    def get_required_fields(self) -> List[str]:
+        """
+        Возвращает список обязательных полей для подключения к SQLite.
+        """
+        return ["path"]
+
+    def connect(self, params: Dict[str, Any]) -> sqlite3.Connection:
+        """
+        Подключается к SQLite-базе данных и возвращает соединение.
+        """
+        self.validate_params(params)
+
+        connection = sqlite3.connect(
+            database=params["path"],
+            timeout=params.get("timeout", 5.0),
+            detect_types=params.get("detect_types", 0),
+            isolation_level=params.get("isolation_level", None),
+            check_same_thread=params.get("check_same_thread", True)
+        )
+        return connection
+
+    def test_connection(self, params: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Проверяет возможность подключения к SQLite базе данных.
+        """
         try:
-            conn = sqlite3.connect(endpoint["db_file"])
+            conn = self.connect(params)
+            conn.execute("SELECT 1")  # Простая проверка
             conn.close()
-            return True
-        except Exception:
-            return False
-
-    def endpoint_fields(self, container):
-        tk.Label(container, text="DB File Path", font=("Courier New", 9, "bold"), bg="#C0C0C0").pack(anchor="w", padx=4, pady=(0, 0))
-        sqlite_file_entry = tk.Entry(container)
-        sqlite_file_entry.pack(fill=tk.X, padx=5, pady=(2, 5))
-
-        return sqlite_file_entry
+            return True, ""
+        except sqlite3.OperationalError as e:
+            return False, f"Ошибка подключения к базе: {e}"
+        except Exception as e:
+            return False, str(e)

@@ -100,15 +100,13 @@ class FormHandler:
             if data_type == "scripts":
                 self.create_code_field(item_data.get("code", ""))
                 self.add_syntax_highlighting(self.script_text, item_data.get("code", ""), item_data.get("interpreter", ""))
-            old_data = self.collect_data(data_type)
+
             def save_changes():
                 """Обработка сохранения изменений."""
                 new_name = self.name_entry.get()
                 old_name = name
 
                 data = self.collect_data(data_type)
-                print(data)
-                print(save_func)
                 success, message = save_func(self.ui, name, data)
                 # Собираем данные для сохранения
                 if success:
