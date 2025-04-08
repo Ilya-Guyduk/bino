@@ -36,7 +36,7 @@ class App:
         # Configure the main application window
         self.root = root
         self.root.title("B!NO")  # Set window title
-        self.root.geometry("800x600")  # Set default window size
+        self.root.geometry("650x600")  # Set default window size
 
         # Setup UI styling
         self.style = ttk.Style()

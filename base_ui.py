@@ -8,6 +8,7 @@ import os
 
 from storage import save_data
 from config import VERSION
+from theme import StyledButton
 from interpreters.python import PythonInterpreter
 from interpreters.bash import BashInterpreter
 from connectors.ssh import SshConnector
@@ -57,8 +58,10 @@ class BaseUI:
         self.listbox = tk.Listbox(container, selectbackground="#f37600", selectforeground="black")
         self.listbox.pack(fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", bind_command)
-        self.add_button = self.create_button(container, "Add", add_button_command)
+        self.add_button = StyledButton(container, text="➕ Add", command=add_button_command)
         self.add_button.pack(fill=tk.X)
+
+        return self.listbox
 
     def init_font(self):
         font_path = "fonts/Silkscreen-Regular.ttf"
@@ -69,7 +72,7 @@ class BaseUI:
             print("Ошибка загрузки шрифта")
             self.custom_font = tk.font.Font(family="Courier", size=12)
     
-    def open_options_window(self, name, opt_type):
+    def open_options_window(self, opt_type):
         """Открывает окно для выбора опций эндпоинта или скрипта."""
         self.connectors = {
             "ssh": SshConnector(),
@@ -79,9 +82,10 @@ class BaseUI:
             "python": PythonInterpreter(),
             "bash": BashInterpreter()
         }
-
+        selected = self.listbox.curselection()
+        name = self.listbox.get(selected[0])
         options_window = tk.Toplevel()
-        options_window.title(f"Options")
+        options_window.title(f"Options {name}")
         container, frame = self.create_form_container(parent=options_window)
         frame.grid(padx=4, pady=4)
 
@@ -137,7 +141,7 @@ class BaseUI:
 
         button_container = self.buttons_frame(container)
         button_container.grid(padx=(0, 4))
-        save_btn = self.create_button(button_container, "Save", save_options)
+        save_btn = StyledButton(button_container, text="Save", command=save_options)
         save_btn.grid(row=len(options_vars), column=0, pady=10)  # Сохраняем кнопку в grid
         
     def create_form_container(self, parent=None):
@@ -156,42 +160,11 @@ class BaseUI:
 
         return container, frame
 
-    def clear_content_frame(self):
-        """Очистка основного контентного фрейма."""
-        for widget in self.app.content_frame.winfo_children():
-            widget.destroy()
-
     def buttons_frame(self, container):
         buttons_frame = tk.Frame(container, bg=container.cget('bg'))
         buttons_frame.grid(row=0, column=1, sticky="ne")
 
         return buttons_frame
-
-    def create_button(self, buttons_frame, user_text, user_command):
-        """
-        Создаёт кнопки на основе переданного списка.
-        
-        :param container: Родительский виджет для кнопок
-        :param buttons_data: Список кортежей (Название, Функция)
-        """
-
-        def on_enter(e):
-            e.widget.config(bg="#d5a78d")
-
-        def on_leave(e):
-            e.widget.config(bg="#ffffff")
-
-        btn = tk.Button(buttons_frame, text=user_text, font=("Silkscreen", 9), bg="#ffffff", command=user_command)
-        btn.pack(fill="x", pady=(2,0))
-        btn.bind("<Enter>", on_enter)
-        btn.bind("<Leave>", on_leave)
-
-        return btn
-
-    def create_label(self, frame, name) -> tk.Label:
-        label = tk.Label(frame, text=name, font=("Silkscreen", 9), bg=frame.cget('bg'))
-        label.pack(anchor="w", padx=4, pady=(0, 0))
-        return label
 
     def create_entry(self, frame, name, textvariable="",**kwargs):
 
