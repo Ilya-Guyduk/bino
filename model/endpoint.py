@@ -52,7 +52,7 @@ class Endpoint:
             value (Any): Attribute value.
         """
         # Fixed attributes (name, type) are handled by the parent
-        if key in {"name", "type_", "_attributes"}:
+        if key in {"name", "type_", "storage", "_attributes"}:
             super().__setattr__(key, value)
         else:
             self._attributes[key] = value
@@ -140,4 +140,4 @@ class Endpoint:
     
     @classmethod
     def empty_model(cls) -> "Endpoint":
-        return cls()
+        return cls(name="", type_="", storage=None, **{})
