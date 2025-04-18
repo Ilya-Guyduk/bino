@@ -1,5 +1,4 @@
 paramiko
 psycopg2
 pygments
-requests
 tk
