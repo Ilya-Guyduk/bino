@@ -5,7 +5,7 @@ used in the application. Script stores interpreter and execution data,
 while Endpoint can be dynamically configured depending on its type.
 """
 
-from typing import Optional, Dict, Any
+from typing import Dict, Any, Tuple
 
 
 class Endpoint:
@@ -108,20 +108,45 @@ class Endpoint:
             for k, v in self._attributes.items()
         )
         return f"{base}\n{dynamic}" if dynamic else base
-    
-    def create(self):
+
+    def create(self) -> Tuple[bool, str]:
+        """
+        Create a new endpoint in storage.
+
+        Returns:
+            Tuple[bool, str]: Success status and message.
+        """
         if self.name in self.storage.endpoints:
             return False, "Скрипт уже существует"
         self.storage.endpoints[self.name] = self.to_dict()
         self.storage.save()
         return True, f"Скрипт '{self.name}' создан."
-    
+
     def read(self, name) -> "Endpoint":
+        """
+        Retrieve an endpoint from storage by name.
+
+        Args:
+            name (str): Name of the endpoint.
+
+        Returns:
+            Endpoint or None: Found endpoint instance or None if not found.
+        """
         data = self.storage.endpoints.get(name)
         return self.from_dict(self.storage, data) if data else None
-    
+
     def update(self, old_name, new_name, data):
-        """Обновляет существующий скрипт."""
+        """
+        Update an existing endpoint in storage.
+
+        Args:
+            old_name (str): Current name of the endpoint.
+            new_name (str): New name to update to.
+            data (dict): Updated endpoint data.
+
+        Returns:
+            Tuple[bool, str]: Success status and message.
+        """
         if old_name not in self.storage.endpoints:
             return False, "Скрипт не найден"
         if old_name != new_name and new_name in self.storage.endpoints:
@@ -132,12 +157,19 @@ class Endpoint:
         return True, f"Скрипт '{new_name}' обновлён."
 
     def delete(self):
+        """
+        Delete the endpoint from storage.
+
+        Returns:
+            Tuple[bool, str]: Success status and message.
+        """
         if self.name in self.storage.endpoints:
             del self.storage.endpoints[self.name]
             self.storage.save()
             return True, f"Скрипт '{self.name}' удалён."
         return False, "Скрипт не найден."
-    
+
     @classmethod
     def empty_model(cls) -> "Endpoint":
+        """Return empty model"""
         return cls(name="", type_="", storage=None, **{})

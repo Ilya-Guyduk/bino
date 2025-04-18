@@ -1,3 +1,10 @@
+"""Module containing classes for Script and Endpoint configurations.
+
+This module provides data models for scripts and flexible endpoints
+used in the application. Script stores interpreter and execution data,
+while Endpoint can be dynamically configured depending on its type.
+"""
+
 from typing import Optional, Dict, Any
 
 
@@ -47,8 +54,14 @@ class Script:
             "endpoint": self.endpoint,
             "options": self.options
         }
-    
+
     def create(self):
+        """
+        Create a new script in the storage.
+
+        Returns:
+            Tuple[bool, str]: Success status and message.
+        """
         if self.name in self.storage.scripts:
             return False, "Скрипт уже существует"
         self.storage.scripts[self.name] = self.to_dict()
@@ -56,11 +69,30 @@ class Script:
         return True, f"Скрипт '{self.name}' создан."
 
     def read(self, name) -> "Script":
+        """
+        Retrieve a script from storage by its name.
+
+        Args:
+            name (str): Name of the script.
+
+        Returns:
+            Script or None: The script instance or None if not found.
+        """
         data = self.storage.scripts.get(name)
         return self.from_dict(self.storage, data) if data else None
 
     def update(self, old_name, new_name, script_data):
-        """Обновляет существующий скрипт."""
+        """
+        Update an existing script in the storage.
+
+        Args:
+            old_name (str): Current name of the script.
+            new_name (str): New name for the script.
+            script_data (dict): Updated script data.
+
+        Returns:
+            Tuple[bool, str]: Success status and message.
+        """
         if old_name not in self.storage.scripts:
             return False, "Скрипт не найден"
         if old_name != new_name and new_name in self.storage.scripts:
@@ -71,14 +103,26 @@ class Script:
         return True, f"Скрипт '{new_name}' обновлён."
 
     def delete(self):
+        """
+        Delete the script from the storage.
+
+        Returns:
+            Tuple[bool, str]: Success status and message.
+        """
         if self.name in self.storage.scripts:
             del self.storage.scripts[self.name]
             self.storage.save()
             return True, f"Скрипт '{self.name}' удалён."
         return False, "Скрипт не найден."
-    
+
     @classmethod
     def empty_model(cls) -> "Script":
+        """
+        Create and return an empty Script model instance.
+
+        Returns:
+            Script: An instance of Script with default values.
+        """
         return cls()
 
     @classmethod
@@ -125,4 +169,3 @@ class Script:
             f"  Code        : {self.code.strip()[:50]}{'...' if len(self.code.strip()) > 50 else ''}\n"
             f"  Options     : {self.options}"
         )
-
