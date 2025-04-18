@@ -1,7 +1,9 @@
-import pytest
+"""Unit-тесты для класса FormHandler в модуле controller.controller."""
+
 import tkinter as tk
 from unittest.mock import MagicMock, patch
 
+import pytest
 from controller.controller import FormHandler
 
 
@@ -37,7 +39,7 @@ def test_form_handler_init_scripts(mock_model, mock_backend, mock_ui, dummy_app)
 @patch("controller.controller.EndpointUI")
 @patch("controller.controller.EndpointBackend")
 @patch("controller.controller.Endpoint")
-def test_form_handler_init_endpoints(mock_model, mock_backend, mock_ui, dummy_app):
+def test_form_handler_init_endpoints(_mock_model, mock_backend, mock_ui, dummy_app):
     handler = FormHandler(app=dummy_app, obj_type="endpoints")
 
     assert handler._type == "endpoints"
@@ -48,6 +50,7 @@ def test_form_handler_init_endpoints(mock_model, mock_backend, mock_ui, dummy_ap
 
 
 def test_clear_content_frame_removes_widgets(dummy_app):
+    """Проверяет, что clear_content_frame удаляет все виджеты из content_frame."""
     dummy_widget = tk.Label(dummy_app.content_frame, text="Test")
     dummy_widget.pack()
     assert len(dummy_app.content_frame.winfo_children()) == 1
@@ -60,9 +63,9 @@ def test_clear_content_frame_removes_widgets(dummy_app):
 @patch("controller.controller.ScriptUI")
 @patch("controller.controller.ScriptBackend")
 @patch("controller.controller.Script")
-def test_display_and_edit_populates_form(mock_model, mock_backend, mock_ui, dummy_app):
+def test_display_and_edit_populates_form(_mock_model, _mock_backend, _mock_ui, dummy_app):
     handler = FormHandler(app=dummy_app, obj_type="scripts")
-    
+
     dummy_model = MagicMock()
     dummy_model.read.return_value = dummy_model
     handler.model = dummy_model
@@ -80,7 +83,7 @@ def test_display_and_edit_populates_form(mock_model, mock_backend, mock_ui, dumm
 @patch("controller.controller.ScriptUI")
 @patch("controller.controller.ScriptBackend")
 @patch("controller.controller.Script")
-def test_create_form_and_save(mock_model, mock_backend, mock_ui, dummy_app):
+def test_create_form_and_save(_mock_model, _mock_backend, _mock_ui, dummy_app):
     handler = FormHandler(app=dummy_app, obj_type="scripts")
 
     mock_instance = MagicMock()
@@ -93,7 +96,10 @@ def test_create_form_and_save(mock_model, mock_backend, mock_ui, dummy_app):
 
     # Чтобы достать функцию save изнутри create_form_and_save,
     # мы мокнем create_button_frame и сразу вызовем save из неё
-    with patch.object(handler, "create_button_frame", wraps=handler.create_button_frame) as mock_button_frame:
+    with patch.object(handler,
+                      "create_button_frame",
+                      wraps=handler.create_button_frame
+                      ) as mock_button_frame:
         handler.create_form_and_save()
         # Извлекаем сохранённую функцию и вызываем её
         args, kwargs = mock_button_frame.call_args
@@ -101,4 +107,3 @@ def test_create_form_and_save(mock_model, mock_backend, mock_ui, dummy_app):
         save_func()
 
     assert handler.data_model == mock_instance
-

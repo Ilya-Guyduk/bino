@@ -1,8 +1,8 @@
 """docstring"""
 import tkinter as tk
 import threading
-import paramiko
 from tkinter import messagebox
+import paramiko
 
 #from model.script import Script
 from model.endpoint import Endpoint
@@ -20,9 +20,6 @@ class ScriptBackend:
             "bash": BashInterpreter()
         }
 
-
-
-
     def run_script(self):
         """
         Запускает скрипт на удалённом сервере 
@@ -36,7 +33,7 @@ class ScriptBackend:
         if not endpoint_data:
             messagebox.showwarning("Ошибка", "Эндпоинт не существует")
             return
-        
+
         endpoint = Endpoint.from_dict(self.storage, endpoint_data)
 
         hostname = endpoint.ip

@@ -116,19 +116,28 @@ class FormHandler:
             # В зависимости от типа опции создаём виджет для неё
             if opt_type == bool:
                 var = tk.BooleanVar(value=opt_value)
-                chk = tk.Checkbutton(frame, text=f"{option} - {opt_desc}", variable=var, bg=frame.cget("bg"))
-                chk = self.create_checkbutton(frame, text=f"{option} - {opt_desc}", variable=var)
+                chk = tk.Checkbutton(frame,
+                                     text=f"{option} - {opt_desc}",
+                                     variable=var,
+                                     bg=frame.cget("bg"))
+                chk = self.create_checkbutton(frame,
+                                              text=f"{option} - {opt_desc}",
+                                              variable=var)
             elif opt_type == int:
                 var = tk.IntVar(value=opt_value)
                 label = StyledLabel(frame, text=f"{option} - {opt_desc}")
                 label.pack(anchor="w")
-                entry = self.create_entry(frame, name="", textvariable=var)  # Привязываем переменную к Entry
+                entry = self.create_entry(frame,
+                                          name="",
+                                          textvariable=var)  # Привязываем переменную к Entry
                 entry.pack(anchor="w")
             elif opt_type == str:
                 var = tk.StringVar(value=opt_value)
                 label = StyledLabel(frame, text=f"{option} - {opt_desc}")
                 label.pack(anchor="w")
-                entry = self.create_entry(frame, name="", textvariable=var)  # Привязываем переменную к Entry
+                entry = self.create_entry(frame,
+                                          name="",
+                                          textvariable=var)  # Привязываем переменную к Entry
                 entry.pack(anchor="w")
             else:
                 continue  # Если тип не поддерживается, пропускаем его
@@ -237,7 +246,7 @@ class FormHandler:
                 "endpoint": self.view.endpoint_var.get(),
                 "code": self.view.script_text.get("1.0", tk.END)
             }
-        elif data_type == "endpoints":
+        if data_type == "endpoints":
             connection_type = self.view.connection_var.get()
             return {
                 "name": self.view.name_entry.get(),

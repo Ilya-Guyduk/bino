@@ -35,16 +35,16 @@ def loadfont(fontpath, private=True, enumerable=False):
     # Преобразуем путь в байты для ctypes
     if isinstance(fontpath, str):
         pathbuf = create_string_buffer(fontpath.encode('utf-8'))  # Преобразуем в байтовую строку
-        AddFontResourceEx = windll.gdi32.AddFontResourceExA
+        add_font_resource_ex = windll.gdi32.AddFontResourceExA
     elif isinstance(fontpath, unicode):
         pathbuf = create_unicode_buffer(fontpath)
-        AddFontResourceEx = windll.gdi32.AddFontResourceExW
+        add_font_resource_ex = windll.gdi32.AddFontResourceExW
     else:
         raise TypeError('fontpath must be of type str or unicode')
 
     flags = (FR_PRIVATE if private else 0) | (FR_NOT_ENUM if not enumerable else 0)
-    numFontsAdded = AddFontResourceEx(byref(pathbuf), flags, 0)
-    return bool(numFontsAdded)
+    num_fonts_added = add_font_resource_ex(byref(pathbuf), flags, 0)
+    return bool(num_fonts_added)
 
 class App:
     """
@@ -196,4 +196,3 @@ class App:
 
         # Attach the menu bar to the root window
         self.root.config(menu=menu_bar)
-
