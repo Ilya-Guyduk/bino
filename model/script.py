@@ -5,47 +5,26 @@ used in the application. Script stores interpreter and execution data,
 while Endpoint can be dynamically configured depending on its type.
 """
 
+from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 
 
+@dataclass(slots=True)
 class Script:
     """
     Represents a script configuration with interpreter, code, endpoint and options.
     """
 
-    def __init__(
-        self,
-        name: str = "",
-        interpreter: str = "python",
-        code: str = "",
-        endpoint: str = "",
-        options: Optional[Dict[str, Any]] = None,
-        storage = None
-    ) -> None:
-        """
-        Initialize a Script instance.
-
-        Args:
-            name (str): Name of the script.
-            interpreter (str): Interpreter to run the script.
-            code (str): Script source code.
-            endpoint (str): Name of the endpoint the script is associated with.
-            options (Optional[Dict[str, Any]]): Execution options or flags.
-        """
-        self.name: str = name
-        self.interpreter: str = interpreter
-        self.code: str = code
-        self.endpoint: str = endpoint
-        self.options: Dict[str, Any] = options if options is not None else {}
-        self.storage = storage
-
+    name: str = ""
+    interpreter: str = "python"
+    code: str = ""
+    endpoint: str = ""
+    options: Dict[str, Any] = field(default_factory=dict)
+    storage: Any = field(default=None, repr=False, compare=False)
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Convert Script instance to dictionary.
-
-        Returns:
-            Dict[str, Any]: Dictionary representation of the script.
+        Convert Script instance to dictionary (excluding storage).
         """
         return {
             "name": self.name,
@@ -58,9 +37,6 @@ class Script:
     def create(self):
         """
         Create a new script in the storage.
-
-        Returns:
-            Tuple[bool, str]: Success status and message.
         """
         if self.name in self.storage.scripts:
             return False, "Скрипт уже существует"
@@ -68,30 +44,16 @@ class Script:
         self.storage.save()
         return True, f"Скрипт '{self.name}' создан."
 
-    def read(self, name) -> "Script":
+    def read(self, name) -> Optional["Script"]:
         """
-        Retrieve a script from storage by its name.
-
-        Args:
-            name (str): Name of the script.
-
-        Returns:
-            Script or None: The script instance or None if not found.
+        Retrieve a script from storage by name.
         """
         data = self.storage.scripts.get(name)
         return self.from_dict(self.storage, data) if data else None
 
-    def update(self, old_name, new_name, script_data):
+    def update(self, old_name: str, new_name: str, script_data: Dict[str, Any]):
         """
-        Update an existing script in the storage.
-
-        Args:
-            old_name (str): Current name of the script.
-            new_name (str): New name for the script.
-            script_data (dict): Updated script data.
-
-        Returns:
-            Tuple[bool, str]: Success status and message.
+        Update existing script in storage.
         """
         if old_name not in self.storage.scripts:
             return False, "Скрипт не найден"
@@ -104,10 +66,7 @@ class Script:
 
     def delete(self):
         """
-        Delete the script from the storage.
-
-        Returns:
-            Tuple[bool, str]: Success status and message.
+        Delete script from storage.
         """
         if self.name in self.storage.scripts:
             del self.storage.scripts[self.name]
@@ -118,26 +77,17 @@ class Script:
     @classmethod
     def empty_model(cls) -> "Script":
         """
-        Create and return an empty Script model instance.
-
-        Returns:
-            Script: An instance of Script with default values.
+        Return an empty Script model.
         """
         return cls()
 
     @classmethod
-    def from_dict(cls, data_storage, data: Dict[str, Any]) -> "Script":
+    def from_dict(cls, storage: Any, data: Dict[str, Any]) -> "Script":
         """
-        Create a Script instance from a dictionary.
-
-        Args:
-            data (Dict[str, Any]): Dictionary containing script data.
-
-        Returns:
-            Script: A new Script instance.
+        Create Script instance from dictionary.
         """
         return cls(
-            storage=data_storage,
+            storage=storage,
             name=data.get("name", ""),
             interpreter=data.get("interpreter", "python"),
             code=data.get("code", ""),
@@ -145,22 +95,7 @@ class Script:
             options=data.get("options", {})
         )
 
-    def __repr__(self) -> str:
-        """
-        Return a developer-friendly string representation.
-
-        Returns:
-            str: Debug representation.
-        """
-        return f"<Script name={self.name} interpreter={self.interpreter}>"
-
     def __str__(self) -> str:
-        """
-        Return a readable string representation of the script.
-
-        Returns:
-            str: Readable representation.
-        """
         return (
             f"Script:\n"
             f"  Name        : {self.name}\n"

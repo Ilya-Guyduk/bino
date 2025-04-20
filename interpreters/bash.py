@@ -1,12 +1,13 @@
 import subprocess
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 class BashInterpreter:
     def __init__(self, interpreter_args=None):
         """
         :param interpreter_args: Словарь с аргументами интерпретатора
         """
-        self.available_options: Dict[str, Dict[str, Any]] = self.default_options()
+        if not interpreter_args:
+            self.available_options: Dict[str, Dict[str, Any]] = self.default_options()
 
     def default_options(self) -> Dict[str, Dict[str, Any]]:
         """

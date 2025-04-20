@@ -23,7 +23,7 @@ def test_create_endpoint_success():
     Test case for successful creation of an endpoint.
     """
     storage = DummyStorage()
-    endpoint = Endpoint(name="ep1", type_="ssh", storage=storage, host="127.0.0.1")
+    endpoint = Endpoint(name="ep1", type_="ssh", storage=storage, options={}, host="127.0.0.1")
 
     success, message = endpoint.create()
 

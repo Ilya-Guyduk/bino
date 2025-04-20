@@ -13,10 +13,11 @@ from pygments import lex
 
 
 from model.script import Script
+from view.main import MainUI
 from view.theme import StyledLabel, StyledEntry, StyledCombobox
 
 
-class ScriptUI:
+class ScriptUI(MainUI):
     """
     This class handles the user interface for editing and managing scripts.
     It allows users to interact with script attributes like name, interpreter,
@@ -24,6 +25,7 @@ class ScriptUI:
     """
     def __init__(self, app: Any):
         self.app = app
+        self.model = None
         self.script_text: Optional[scrolledtext.ScrolledText] = None
         self.name_entry: Optional[StyledEntry] = None
         self.interpreter_entry: Optional[tk.StringVar] = None
@@ -105,6 +107,7 @@ class ScriptUI:
     ) -> None:
 
         """Добавляет поля формы (Name, Interpreter, Endpoint)"""
+        self.model = script
         self.name_entry = self._create_labeled_widget(frame, "Name", StyledEntry)
         self.name_entry.insert(0, script.name)
 
@@ -177,3 +180,19 @@ class ScriptUI:
             self.app.root.after(fade_duration // alpha_steps, lambda: fade(step + 1))
 
         fade()
+
+    def get_data(self) -> dict:
+        """
+        Собирает и возвращает данные, введённые пользователем в форму.
+        """
+        name = self.name_entry.get() if self.name_entry else ""
+        interpreter = self.interpreter_entry.get() if self.interpreter_entry else ""
+        endpoint = self.endpoint_var.get() if self.endpoint_var else ""
+        code = self.script_text.get("1.0", tk.END).strip() if self.script_text else ""
+
+        return {
+            "name": name,
+            "interpreter": interpreter,
+            "endpoint": endpoint,
+            "code": code
+        }

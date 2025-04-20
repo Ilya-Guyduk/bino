@@ -36,9 +36,6 @@ def loadfont(fontpath, private=True, enumerable=False):
     if isinstance(fontpath, str):
         pathbuf = create_string_buffer(fontpath.encode('utf-8'))  # Преобразуем в байтовую строку
         add_font_resource_ex = windll.gdi32.AddFontResourceExA
-    elif isinstance(fontpath, unicode):
-        pathbuf = create_unicode_buffer(fontpath)
-        add_font_resource_ex = windll.gdi32.AddFontResourceExW
     else:
         raise TypeError('fontpath must be of type str or unicode')
 
@@ -175,9 +172,9 @@ class App:
 
         # --- File Menu ---
         file_menu = tk.Menu(menu_bar, tearoff=0, bg="#f2ceae")
-        file_menu.add_command(label="New", command=lambda: print("New clicked"))
-        file_menu.add_command(label="Open", command=lambda: print("Open clicked"))
-        file_menu.add_command(label="Save", command=lambda: print("Save clicked"))
+        file_menu.add_command(label="Setting", command=lambda: print("New clicked"))
+        file_menu.add_command(label="Import", command=lambda: print("Open clicked"))
+        file_menu.add_command(label="Export", command=lambda: print("Save clicked"))
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.quit)
         menu_bar.add_cascade(label="Storage", menu=file_menu)

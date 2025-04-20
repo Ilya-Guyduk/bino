@@ -1,6 +1,9 @@
 import os
 import sys
 import importlib
+import tkinter as tk
+from tkinter import messagebox
+
 
 class EndpointBackend:
     """Класс для работы с эндпоинтами и коннекторами."""
@@ -32,20 +35,30 @@ class EndpointBackend:
                     connectors[module_name] = connector_class()
         return connectors
 
-    def test_connection(self, endpoint_name, endpoint_data):
-        """Проверяет соединение с эндпоинтом."""
-        connection_type = endpoint_data["type"]
-        connector = self.connectors.get(connection_type)
+    def test_connection(self):
+        """Проверка соединения с эндпоинтом с потоковым выводом статуса."""
+
+        #selected = self.app.endpoints_manager.listbox.curselection()
+        #if not selected:
+        #    messagebox.showwarning("Ошибка", "Выберите эндпоинт для тестирования.")
+        #    return
+
+        name = self.app.endpoints_manager.view.name_entry.get()
+        endpoint = self.app.endpoints_manager.model.read(name)
+
+        if not endpoint:
+            messagebox.showerror("Ошибка", "Не найдено данных для эндпоинта.")
+            return
+
+        connector = self.connectors.get(endpoint.type_)
         if not connector:
-            return False, f"Неизвестный тип соединения: {connection_type}"
+            messagebox.showerror("Ошибка", f"Неизвестный тип соединения: {endpoint.type_}")
+            return
 
         required_fields = connector.get_required_fields()
-        missing_fields = [field for field in required_fields if field not in endpoint_data]
+        missing_fields = [field for field in required_fields if field not in endpoint._attributes]
         if missing_fields:
-            return False, f"Отсутствуют обязательные поля: {', '.join(missing_fields)}"
+            messagebox.showerror("Ошибка", f"Отсутствуют обязательные поля: {', '.join(missing_fields)}")
+            return
 
-        try:
-            success, test_result = connector.test_connection(endpoint_data)
-            return success, test_result
-        except Exception as e:
-            return False, f"Ошибка: {e}"
+        self.app.endpoints_manager.view.create_test_connection_window(connector, endpoint)

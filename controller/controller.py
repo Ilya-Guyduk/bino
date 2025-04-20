@@ -1,9 +1,10 @@
 
 import tkinter as tk
 from tkinter import messagebox
+from typing import Dict, Any
 
 #from model.endpoint import Script, Endpoint
-from view.theme import StyledButton, StyledFrame, StyledFrameWithLogo, StyledLabel
+from view.theme import StyledButton, StyledFrame, StyledFrameWithLogo, StyledLabel, StyledEntry, StyledCheckbutton
 from model.script import Script
 from model.endpoint import Endpoint
 from view.script import ScriptUI
@@ -82,82 +83,32 @@ class FormHandler:
             self.listbox.insert(tk.END, obj)
 
     def open_options_window(self):
-        """Открывает окно для выбора опций эндпоинта или скрипта."""
+        """Открывает окно настроек (options) для текущего объекта."""
         name = self.data_model.name
-
         options_window = tk.Toplevel()
         options_window.title(f"Options {name}")
+
         frame = StyledFrameWithLogo(parent=options_window)
-        frame.pack(fill="x", padx=(0, 0), pady=(0, 0))
+        frame.pack(fill="x", padx=0, pady=0)
         frame.columnconfigure(0, weight=1)
 
-        #container, frame = self.create_frame(parent=options_window)
-        #frame.grid(padx=4, pady=4)
+        # Получаем опции
+        available_options = self._get_option_source()
+        options_vars = self.view.render_option_fields(frame.frame, available_options)
 
+        # Добавляем кнопку сохранения
+        self.view.render_save_button(frame.frame, options_vars, options_window)
 
-        # Определяем, какой тип данных мы обрабатываем (эндпоинт или скрипт)
+    def _get_option_source(self):
+        """Возвращает ключ типа (интерпретатор/endpoint) и его доступные опции."""
         if self._type == "endpoints":
             ch_type = self.data_model.type_
-            point_data = self.controller.connectors
+            return self.controller.connectors[ch_type].available_options
         elif self._type == "scripts":
             ch_type = self.data_model.interpreter
-            point_data = self.controller.interpreters
+            return self.controller.interpreters[ch_type].available_options
         else:
-            return
-
-        options_vars = {}
-
-        # Перебираем все опции для выбранного типа (ендпоинт или интерпретатор)
-        for i, (option, details) in enumerate(point_data[ch_type].available_options.items()):
-            opt_type = details["type"]
-            opt_desc = details["description"]
-            opt_value = self.data_model.options
-
-            # В зависимости от типа опции создаём виджет для неё
-            if opt_type == bool:
-                var = tk.BooleanVar(value=opt_value)
-                chk = tk.Checkbutton(frame,
-                                     text=f"{option} - {opt_desc}",
-                                     variable=var,
-                                     bg=frame.cget("bg"))
-                chk = self.create_checkbutton(frame,
-                                              text=f"{option} - {opt_desc}",
-                                              variable=var)
-            elif opt_type == int:
-                var = tk.IntVar(value=opt_value)
-                label = StyledLabel(frame, text=f"{option} - {opt_desc}")
-                label.pack(anchor="w")
-                entry = self.create_entry(frame,
-                                          name="",
-                                          textvariable=var)  # Привязываем переменную к Entry
-                entry.pack(anchor="w")
-            elif opt_type == str:
-                var = tk.StringVar(value=opt_value)
-                label = StyledLabel(frame, text=f"{option} - {opt_desc}")
-                label.pack(anchor="w")
-                entry = self.create_entry(frame,
-                                          name="",
-                                          textvariable=var)  # Привязываем переменную к Entry
-                entry.pack(anchor="w")
-            else:
-                continue  # Если тип не поддерживается, пропускаем его
-
-            # Сохраняем переменную в словарь для дальнейшего использования
-            options_vars[option] = var
-
-        def save_options():
-            # Сохраняем изменения
-            if "options" not in self.data_model:
-                self.data_model.options = {}
-            for opt, var in options_vars.items():
-                parent_data["options"][opt] = var.get()
-            save_data(self.app.data)
-            options_window.destroy()
-
-        button_container = self.buttons_frame(frame.container)
-        button_container.grid(padx=(0, 4))
-        save_btn = StyledButton(button_container, text="Save", command=save_options)
-        save_btn.grid(row=len(options_vars), column=0, pady=10)  # Сохраняем кнопку в grid
+            return {}
 
     def create_frame(self, parent=None, model=None):
         """docstring"""
@@ -220,13 +171,14 @@ class FormHandler:
 
         def save():
             """Обработка сохранения данных."""
-            data = self.collect_data(self._type)  # Собираем данные
+            data = self.view.get_data()  # Собираем данные
             self.data_model = self.model.from_dict(self.app.storage, data)
             success, message = self.data_model.create()  # Вызываем соответствующий метод сохранения
 
             if success:
                 save_btn.config(text="Saved", font=("Silkscreen", 9), bg="gray80")
-                StyledButton(button_container, text="❌ Delete", command=self.data_model.delete)
+                delete_btn = StyledButton(button_container, text="❌ Delete", command=self.data_model.delete)
+                delete_btn.pack(fill="x", pady=(2, 0))
                 self.listbox.insert(0, data["name"])
                 save_btn.after(2000, lambda: save_btn.config(text="Save"))
                 messagebox.showwarning("Заебок!", message)
@@ -236,40 +188,21 @@ class FormHandler:
         # Создание кнопок
         save_btn, button_container = self.create_button_frame(container, save)
 
-
-    def collect_data(self, data_type):
-        """Собирает данные в зависимости от типа (скрипт или эндпоинт)."""
-        if data_type == "scripts":
-            return {
-                "name": self.view.name_entry.get(),
-                "interpreter": self.view.interpreter_entry.get(),
-                "endpoint": self.view.endpoint_var.get(),
-                "code": self.view.script_text.get("1.0", tk.END)
-            }
-        if data_type == "endpoints":
-            connection_type = self.view.connection_var.get()
-            return {
-                "name": self.view.name_entry.get(),
-                "type": connection_type,
-                **{field: getattr(self, f"{field.lower()}_entry").get() for field in self.view.connectors[connection_type].get_required_fields()}
-            }
-
-    def display_and_edit(self, _event):
+    def display_and_edit(self, _event) -> None:
         """Отображение и редактирование данных для скрипта или эндпоинта."""
 
-        selected = self.listbox.curselection()
-        if selected:
-            name = self.listbox.get(selected[0])
+        selected_index = self.listbox.curselection()
+        if selected_index:
+            name = self.listbox.get(selected_index[0])
 
             self.data_model = self.model.read(name)
-            print(self.data_model)
             container, _ = self.create_frame()
 
             def save_changes():
                 """Обработка сохранения изменений."""
                 new_name = self.view.name_entry.get()
                 old_name = name
-                data = self.collect_data(self._type)
+                data = self.view.get_data()
                 success, message = self.data_model.update(old_name, new_name, data)
                 # Собираем данные для сохранения
                 if success:
