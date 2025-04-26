@@ -125,4 +125,3 @@ class SshConnector(BaseConnector):
             return False, e
         except Exception as e:
             return False, e
-        return False

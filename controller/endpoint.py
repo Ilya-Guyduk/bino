@@ -1,12 +1,12 @@
 import os
 import sys
 import importlib
+import tkinter as tk
+from tkinter import messagebox
 
-from model.endpoint import Endpoint
 
 class EndpointBackend:
     """Класс для работы с эндпоинтами и коннекторами."""
-    
     def __init__(self, app):
         self.app = app
         self.storage = self.app.storage
@@ -35,73 +35,30 @@ class EndpointBackend:
                     connectors[module_name] = connector_class()
         return connectors
 
-    def test_connection(self, endpoint_name, endpoint_data):
-        """Проверяет соединение с эндпоинтом."""
-        connection_type = endpoint_data["type"]
-        connector = self.connectors.get(connection_type)
+    def test_connection(self):
+        """Проверка соединения с эндпоинтом с потоковым выводом статуса."""
+
+        #selected = self.app.endpoints_manager.listbox.curselection()
+        #if not selected:
+        #    messagebox.showwarning("Ошибка", "Выберите эндпоинт для тестирования.")
+        #    return
+
+        name = self.app.endpoints_manager.view.name_entry.get()
+        endpoint = self.app.endpoints_manager.model.read(name)
+
+        if not endpoint:
+            messagebox.showerror("Ошибка", "Не найдено данных для эндпоинта.")
+            return
+
+        connector = self.connectors.get(endpoint.type_)
         if not connector:
-            return False, f"Неизвестный тип соединения: {connection_type}"
+            messagebox.showerror("Ошибка", f"Неизвестный тип соединения: {endpoint.type_}")
+            return
 
         required_fields = connector.get_required_fields()
-        missing_fields = [field for field in required_fields if field not in endpoint_data]
+        missing_fields = [field for field in required_fields if field not in endpoint._attributes]
         if missing_fields:
-            return False, f"Отсутствуют обязательные поля: {', '.join(missing_fields)}"
-        
-        try:
-            success, test_result = connector.test_connection(endpoint_data)
-            return success, test_result
-        except Exception as e:
-            return False, f"Ошибка: {e}"
+            messagebox.showerror("Ошибка", f"Отсутствуют обязательные поля: {', '.join(missing_fields)}")
+            return
 
-    def save_object(self, ui, old_name, endpoint_data):
-        """Сохраняет новый или отредактированный эндпоинт."""
-
-        new_name = endpoint_data.get("name")
-        if not new_name:
-            return False, "Имя не может быть пустым."
-
-        endpoints = self.app.data["endpoints"]
-        list_items = ui.listbox.get(0, tk.END)
-
-        # Обновление существующего
-        if old_name:
-            if old_name != new_name:
-                if new_name in endpoints:
-                    return False, f"Эндпоинт с именем '{new_name}' уже существует."
-                if old_name in endpoints:
-                    del endpoints[old_name]
-                endpoints[new_name] = endpoint_data
-
-                if old_name in list_items:
-                    index = list_items.index(old_name)
-                    ui.listbox.delete(index)
-                    ui.listbox.insert(index, new_name)
-            else:
-                endpoints[new_name] = endpoint_data
-            save_data(self.app.data)
-            return True, f"Эндпоинт '{new_name}' успешно сохранён."
-
-        # Добавление нового
-        if new_name not in endpoints:
-            endpoints[new_name] = endpoint_data
-            ui.listbox.insert(tk.END, new_name)
-            save_data(self.app.data)
-            return True, f"Эндпоинт '{new_name}' успешно добавлен."
-
-        return False, f"Эндпоинт с именем '{new_name}' уже существует."
-
-    def empty_model(self) -> Endpoint:
-        """docstring"""
-        return Endpoint()
-
-    def read(self, name) -> Endpoint:
-        """Чтение данных конкретного эндпоинта."""
-        data = self.storage.endpoints.get(name)
-        return Endpoint.from_dict(data) if data else None
-
-    def delete(self, name):
-        if name in self.storage.endpoints:
-            del self.storage.endpoints[name]
-            self.storage.save()
-            return True, f"Эндпоинт '{name}' удалён."
-        return False, "Эндпоинт не найден."
+        self.app.endpoints_manager.view.create_test_connection_window(connector, endpoint)

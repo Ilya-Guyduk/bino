@@ -15,6 +15,7 @@ Run this script to start the application.
 
 import sys
 import os
+import logging
 from tkinter import Tk
 from controller.main import App
 
@@ -39,6 +40,7 @@ def resource_path(relative_path: str) -> str:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     # Initialize the main Tkinter application window
     root = Tk()
     # Create an instance of the App class, passing the root window

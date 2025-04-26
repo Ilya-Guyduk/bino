@@ -5,7 +5,16 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('fonts/Silkscreen-Regular.ttf', 'fonts'), ('fonts/Silkscreen-Bold.ttf', 'fonts'), ('connectors', 'connectors'), ('icon.ico', '.')],
+    datas=[
+        ('fonts/Silkscreen-Regular.ttf', 'fonts'),
+        ('fonts/Silkscreen-Bold.ttf', 'fonts'), 
+        ('connectors', 'connectors'),
+        ('model', 'model'),
+        ('controller', 'controller'),
+        ('view', 'view'),
+        ('interpreters', 'interpreters'),
+        ('icon.ico', '.')
+    ],
     hiddenimports=['psycopg2', 'sqlite3'],
     hookspath=[],
     hooksconfig={},
