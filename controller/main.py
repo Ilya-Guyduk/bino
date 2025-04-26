@@ -13,11 +13,12 @@ Features:
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
+import configparser
 import webbrowser
 from ctypes import windll, byref, create_unicode_buffer, create_string_buffer
 import os
 
-from controller.file import FileStorage
+from controller.file import FileStorage, StorageHandler
 from controller.controller import FormHandler
 
 FR_PRIVATE = 0x10
@@ -57,6 +58,10 @@ class App:
 
 
         # Configure the main application window
+        self.config = configparser.ConfigParser()
+        self.config.read('settings.ini')
+        self.storage_handler = StorageHandler(self.config)
+
         self.root = root
         self.root.title("B!NO")  # Set window title
         self.root.geometry("650x600")  # Set default window size
@@ -75,7 +80,7 @@ class App:
                              )  # Background behind tabs
 
         self.style.configure("TNotebook.Tab",
-                             font=("Silkscreen", 9),
+                             font=self.custom_font,
                              padding=[4, 2],
                              background="#fdbf1c",
                              borderwidth=1,
@@ -159,10 +164,10 @@ class App:
         font_path = "fonts/Silkscreen-Regular.ttf"
 
         if loadfont(font_path):  # Попытка загрузить шрифт
-            self.custom_font = tkfont.Font(family="Silkscreen", size=12)
+            self.custom_font = tkfont.Font(family="Silkscreen", size=9)
         else:
             print("Ошибка загрузки шрифта")
-            self.custom_font = tkfont.Font(family="Courier", size=12)
+            self.custom_font = tkfont.Font(family="Courier", size=9)
 
     def _create_menu_bar(self):
         """
@@ -172,24 +177,26 @@ class App:
 
         # --- File Menu ---
         file_menu = tk.Menu(menu_bar, tearoff=0, bg="#f2ceae")
-        file_menu.add_command(label="Setting", command=lambda: print("New clicked"))
+        file_menu.add_command(label="Setting", command=lambda: self.storage_handler.setting_window())
         file_menu.add_command(label="Import", command=lambda: print("Open clicked"))
         file_menu.add_command(label="Export", command=lambda: print("Save clicked"))
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.root.quit)
         menu_bar.add_cascade(label="Storage", menu=file_menu)
 
         # --- Edit Menu ---
         edit_menu = tk.Menu(menu_bar, tearoff=0)
-        edit_menu.add_command(label="Undo", command=lambda: print("Undo clicked"))
-        edit_menu.add_command(label="Redo", command=lambda: print("Redo clicked"))
-        menu_bar.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Setting", command=lambda: print("Undo clicked"))
+        edit_menu.add_command(label="Interpreters", command=lambda: print("Redo clicked"))
+        edit_menu.add_command(label="Connectors", command=lambda: print("Redo clicked"))
+        menu_bar.add_cascade(label="B!no", menu=edit_menu)
 
         # --- Help Menu ---
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About", command=lambda: print("This is B!NO v1.0"))
+        help_menu.add_command(label="Update", command=lambda: print("This is B!NO v1.0"))
         help_menu.add_command(label="GitHub", command=lambda: self.open_github(None))
-        menu_bar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_separator()
+        help_menu.add_command(label="Exit", command=self.root.quit)
+        menu_bar.add_cascade(label="Help", menu=help_menu) 
 
         # Attach the menu bar to the root window
         self.root.config(menu=menu_bar)

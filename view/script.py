@@ -93,7 +93,7 @@ class ScriptUI(MainUI):
         **widget_kwargs: Any
     ) -> tk.Widget:
 
-        label = StyledLabel(parent, text=label_text)
+        label = StyledLabel(parent, text=label_text, font=self.app.custom_font)
         label.pack(anchor="w", padx=4, pady=(0, 0))
         widget = widget_class(parent, **widget_kwargs)
         widget.pack(anchor="w", padx=5, pady=(0, 0))

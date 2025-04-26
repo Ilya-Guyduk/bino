@@ -4,7 +4,7 @@ import tkinter as tk
 
 from model.endpoint import Endpoint
 from view.main import MainUI
-from view.theme import StyledLabel, StyledEntry, StyledCombobox, StyledFrame, StyledButton
+from view.theme import StyledLabel, StyledEntry, StyledCombobox, StyledFrame, StyledButton, StyledToplevel
 import threading
 
 class EndpointUI(MainUI):
@@ -99,8 +99,9 @@ class EndpointUI(MainUI):
 
     def create_test_connection_window(self, connector, endpoint):
         """Создаёт окно для отображения статуса подключения."""
-        result_window = tk.Toplevel()
+        result_window = StyledToplevel()
         result_window.title(f"Test '{endpoint.name}' connection")
+        result_window.configure(bg="#f2ceae")
 
         text_widget = tk.Text(result_window, wrap="word", height=10, width=50)
         text_widget.pack(fill="both", expand=True, padx=10, pady=10)

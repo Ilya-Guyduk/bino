@@ -68,7 +68,7 @@ class FormHandler:
         self.listbox = tk.Listbox(container, selectbackground="#f37600", selectforeground="black")
         self.listbox.pack(fill=tk.BOTH, expand=True)
         self.listbox.bind("<<ListboxSelect>>", self.display_and_edit)
-        self.add_button = StyledButton(container, text="➕ Add", command=self.create_form_and_save)
+        self.add_button = StyledButton(container, text="➕ Add", command=self.create_form_and_save, font=self.app.custom_font)
         self.add_button.pack(fill=tk.X)
         return self.listbox
 
@@ -87,6 +87,7 @@ class FormHandler:
         name = self.data_model.name
         options_window = tk.Toplevel()
         options_window.title(f"Options {name}")
+        options_window.configure(bg="#f2ceae")
 
         frame = StyledFrameWithLogo(parent=options_window)
         frame.pack(fill="x", padx=0, pady=0)
@@ -131,12 +132,14 @@ class FormHandler:
 
         save_btn = StyledButton(button_container,
                                 text="💾 Save",
+                                font=self.app.custom_font,
                                 command=save_func)
         save_btn.pack(fill="x", pady=(2, 0))
         self.app.root.bind("<Control-s>", lambda event: save_func())
 
         cancel_btn = StyledButton(button_container,
                                   text="⬅️ Cancel",
+                                  font=self.app.custom_font,
                                   command=self.clear_content_frame)
         cancel_btn.pack(fill="x", pady=(2, 0))
         self.app.root.bind("<Control-q>", lambda event: self.clear_content_frame())
@@ -144,21 +147,24 @@ class FormHandler:
         if self._type == "scripts":
             run_btn = StyledButton(button_container,
                                    text="🚀 Start",
+                                   font=self.app.custom_font,
                                    command=self.controller.run_script)
             run_btn.pack(fill="x", pady=(2, 0))
         elif self._type == "endpoints":
             test_btn = StyledButton(button_container,
                                     text="🚀 Test",
+                                    font=self.app.custom_font,
                                     command=self.controller.test_connection)
             test_btn.pack(fill="x", pady=(2, 0))
 
         opt_btn = StyledButton(button_container,
                                text="⚙️ Options",
+                               font=self.app.custom_font,
                                command=self.open_options_window)
         opt_btn.pack(fill="x", pady=(2, 0))
 
         if delete_func:
-            del_btn = StyledButton(button_container, text="❌ Delete", command=delete_func)
+            del_btn = StyledButton(button_container, text="❌ Delete", font=self.app.custom_font, command=delete_func)
             del_btn.pack(fill="x", pady=(2, 0))
 
         return save_btn, button_container

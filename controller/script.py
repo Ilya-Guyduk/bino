@@ -47,6 +47,7 @@ class ScriptBackend:
         # Создаём окно сразу
         result_window = StyledToplevel()
         result_window.title("Результат выполнения")
+        result_window.configure(bg="#f2ceae")
 
         text_widget = tk.Text(result_window, wrap="word", height=20, width=80)
         text_widget.pack(fill="both", expand=True, padx=10, pady=10)
