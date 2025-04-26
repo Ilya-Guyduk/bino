@@ -15,9 +15,9 @@ Run this script to start the application.
 
 import sys
 import os
+import logging
 from tkinter import Tk
-import tkinter as tk
-from ui import App
+from controller.main import App
 
 
 def resource_path(relative_path: str) -> str:
@@ -31,11 +31,16 @@ def resource_path(relative_path: str) -> str:
     :param relative_path: The relative path to the resource file.
     :return: The absolute path to the resource.
     """
-    base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
-    return os.path.join(base_path, relative_path)
+    try:
+        base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
+        return os.path.join(base_path, relative_path)
+    except Exception as e:
+        print(f"Error in resource_path: {e}")
+        return relative_path
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     # Initialize the main Tkinter application window
     root = Tk()
     # Create an instance of the App class, passing the root window
